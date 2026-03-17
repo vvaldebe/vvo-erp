@@ -422,10 +422,26 @@ export default function NuevaCotizacionForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="flex gap-6 items-start">
+
+      {/* ── Barra sticky móvil: total + guardar ── */}
+      <div className="lg:hidden fixed bottom-[56px] left-0 right-0 z-20 bg-[var(--bg-topbar)] border-t border-[var(--border-default)] px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg md:left-[220px]">
+        <div className="text-sm">
+          <span className="text-[var(--text-muted)] text-xs">Total</span>
+          <p className="font-bold text-[#7c3aed] tabular-nums leading-tight">{formatCLP(Math.round(totalVal))}</p>
+        </div>
+        <button
+          type="submit"
+          disabled={isPending}
+          className="px-5 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold rounded-[6px] transition-colors flex items-center gap-2 disabled:opacity-70 shrink-0"
+        >
+          {isPending ? <><Loader2 className="w-4 h-4 animate-spin" />{esEdicion ? 'Guardando...' : 'Guardando...'}</> : (esEdicion ? 'Guardar cambios' : 'Guardar')}
+        </button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-6 items-start pb-16 lg:pb-0">
 
         {/* ── Columna izquierda ──────────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-5">
+        <div className="flex-1 min-w-0 space-y-5 w-full">
 
           {/* Banner de borrador recuperado */}
           {draftBanner && (
@@ -458,7 +474,7 @@ export default function NuevaCotizacionForm({
           )}
 
           {/* Sección 1: Encabezado */}
-          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-6 space-y-5">
+          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-4 sm:p-6 space-y-5">
             <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">
               Datos de la cotización
             </h2>
@@ -510,7 +526,7 @@ export default function NuevaCotizacionForm({
           </section>
 
           {/* Sección 2: Cliente y nivel */}
-          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-6 space-y-5">
+          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-4 sm:p-6 space-y-5">
             <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">
               Cliente y nivel de precio
             </h2>
@@ -593,7 +609,7 @@ export default function NuevaCotizacionForm({
           </section>
 
           {/* Sección 3: Ítems */}
-          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-6 space-y-4">
+          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-4 sm:p-6 space-y-4">
             <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">
               Ítems de la cotización
             </h2>
@@ -640,7 +656,7 @@ export default function NuevaCotizacionForm({
           </section>
 
           {/* Sección 4: Notas */}
-          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-6 space-y-3">
+          <section className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-4 sm:p-6 space-y-3">
             <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">
               Notas
             </h2>
@@ -655,7 +671,7 @@ export default function NuevaCotizacionForm({
         </div>
 
         {/* ── Columna derecha: Resumen sticky ───────────────────── */}
-        <div className="w-80 flex-shrink-0 sticky top-6 space-y-3">
+        <div className="w-full lg:w-80 lg:flex-shrink-0 lg:sticky lg:top-6 space-y-3">
           <div className="bg-[var(--bg-card)] rounded-[8px] border border-[var(--border-default)] p-5 space-y-4 shadow-sm">
             <h3 className="text-sm font-semibold text-[var(--text-secondary)]">Resumen</h3>
 
@@ -680,7 +696,7 @@ export default function NuevaCotizacionForm({
               </div>
             </div>
 
-            <div className="space-y-2 pt-1">
+            <div className="hidden lg:flex flex-col gap-2 pt-1">
               <button
                 type="submit"
                 disabled={isPending}
@@ -907,7 +923,7 @@ function ItemRow({
         </div>
 
         {/* Fila 2: dimensiones + precios */}
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {!esMinutos && (
             <div className="space-y-1">
               <label className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wider block">
