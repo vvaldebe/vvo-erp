@@ -34,7 +34,7 @@ export default async function CotizacionDetallePage({
     .from('cotizaciones')
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
-      notas, asunto, created_at, valida_hasta,
+      notas, asunto, created_at, valida_hasta, enviada_at,
       clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje, contactos ( email, telefono, es_principal ) )
     `)
     .eq('id', id)
@@ -134,6 +134,11 @@ export default async function CotizacionDetallePage({
             <p className="text-[15px] font-medium text-[var(--text-secondary)] mt-1">{cot.asunto}</p>
           )}
           <p className="text-[13px] text-[var(--text-secondary)] mt-1">Emitida el {fecha(cot.created_at)}</p>
+          {cot.enviada_at && (
+            <p className="text-[12px] text-green-600 mt-0.5">
+              ✓ Enviada el {new Date(cot.enviada_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(cot.enviada_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <EstadoBadge estado={cot.estado} />
