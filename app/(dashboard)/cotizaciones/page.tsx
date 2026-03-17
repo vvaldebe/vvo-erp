@@ -1,3 +1,4 @@
+import React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Plus, Building2, Mail, Phone, MapPin, Hash, ArrowRight } from 'lucide-react'
@@ -102,8 +103,8 @@ async function fetchDetail(id: string) {
     .from('cotizaciones')
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
-      notas, created_at, valida_hasta,
-      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
+      notas, asunto, created_at, valida_hasta,
+      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje, contactos ( email, es_principal ) )
     `)
     .eq('id', id)
     .single()
@@ -145,6 +146,9 @@ type DetailData = NonNullable<Awaited<ReturnType<typeof fetchDetail>>>
 function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
   const { cot, items, termsByItem } = detail
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
+  const contactos = clienteRaw ? (Array.isArray((clienteRaw as { contactos?: unknown }).contactos) ? (clienteRaw as { contactos: { email: string | null; es_principal: boolean }[] }).contactos : []) : []
+  const contactoPrincipal = contactos.find((c) => c.es_principal) ?? contactos[0] ?? null
+  const clienteEmail = clienteRaw?.email ?? contactoPrincipal?.email ?? null
 
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-6">
@@ -172,9 +176,10 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
             numero={cot.numero}
             estado={cot.estado}
             clienteNombre={clienteRaw?.nombre ?? ''}
-            clienteEmail={clienteRaw?.email}
+            clienteEmail={clienteEmail}
             total={clp(cot.total)}
             validaHasta={fecha(cot.valida_hasta)}
+            asunto={cot.asunto}
           />
         </div>
       </div>
@@ -241,8 +246,8 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
               const terms = termsByItem[item.id] ?? []
 
               return (
-                <>
-                  <tr key={item.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
+                <React.Fragment key={item.id}>
+                  <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
                     <td className="px-4 py-3">
                       <p className="text-[13px] font-medium text-[var(--text-primary)]">{prod?.nombre ?? item.descripcion ?? 'Ítem'}</p>
                       {prod?.nombre && item.descripcion && (
@@ -263,7 +268,7 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
                       <td className="px-4 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums">{clp(t.precio * t.cantidad)}</td>
                     </tr>
                   ))}
-                </>
+                </React.Fragment>
               )
             })}
           </tbody>
