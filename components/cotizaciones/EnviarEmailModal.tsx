@@ -5,11 +5,19 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { X, Send, Loader2, Plus } from 'lucide-react'
 
+interface Contacto {
+  id: string
+  nombre: string
+  email: string | null
+  cargo?: string | null
+}
+
 interface EnviarEmailModalProps {
   id: string
   numero: string
   clienteNombre: string
   clienteEmail: string
+  contactos?: Contacto[]
   total: string
   validaHasta: string
   asuntoCotizacion?: string
@@ -21,6 +29,7 @@ export default function EnviarEmailModal({
   numero,
   clienteNombre,
   clienteEmail,
+  contactos = [],
   total,
   validaHasta,
   asuntoCotizacion,
@@ -29,6 +38,7 @@ export default function EnviarEmailModal({
   const router = useRouter()
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado]   = useState(false)
+  const [destinatario, setDestinatario] = useState(clienteEmail)
 
   const defaultAsunto = asuntoCotizacion
     ? `Cotización ${numero} — ${asuntoCotizacion} — VVO Publicidad`
@@ -74,14 +84,14 @@ VVO Publicidad`
       const res = await fetch(`/api/cotizaciones/${id}/enviar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asunto, cuerpo, cc: ccList }),
+        body: JSON.stringify({ asunto, cuerpo, cc: ccList, to: destinatario }),
       })
       const json = await res.json()
       if (!res.ok) {
         toast.error(json.error ?? 'Error al enviar')
       } else {
         const extras = ccList.length ? ` y ${ccList.length} más` : ''
-        toast.success(`Email enviado a ${clienteEmail}${extras}`)
+        toast.success(`Email enviado a ${destinatario}${extras}`)
         setEnviado(true)
         setTimeout(() => {
           onClose()
@@ -105,9 +115,23 @@ VVO Publicidad`
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-default)]">
-          <div>
+          <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-[var(--text-primary)]">Enviar cotización</h2>
-            <p className="text-xs text-[#6b7280] mt-0.5">Para: {clienteEmail}</p>
+            {contactos.length > 1 ? (
+              <select
+                value={destinatario}
+                onChange={(e) => setDestinatario(e.target.value)}
+                className="mt-1 w-full text-xs border border-[var(--border-default)] rounded-[5px] px-2 py-1 bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:border-[#7c3aed]"
+              >
+                {contactos.filter((c) => c.email).map((c) => (
+                  <option key={c.id} value={c.email!}>
+                    {c.nombre}{c.cargo ? ` — ${c.cargo}` : ''} ({c.email})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs text-[#6b7280] mt-0.5">Para: {destinatario}</p>
+            )}
           </div>
           <button
             onClick={onClose}

@@ -13,6 +13,7 @@ export async function POST(
   const asunto: string | undefined = body.asunto
   const cuerpo: string | undefined = body.cuerpo
   const ccExtra: string[] = Array.isArray(body.cc) ? body.cc : []
+  const toOverride: string | undefined = typeof body.to === 'string' ? body.to : undefined
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -35,7 +36,7 @@ export async function POST(
 
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
 
-  if (!clienteRaw?.email) {
+  if (!toOverride && !clienteRaw?.email) {
     return NextResponse.json(
       { error: 'El cliente no tiene email registrado' },
       { status: 422 }
@@ -118,8 +119,9 @@ export async function POST(
   const copiaInterna = process.env.NEXT_PUBLIC_EMPRESA_EMAIL ?? 'victor@vvo.cl'
   const ccFinal = Array.from(new Set([copiaInterna, ...ccExtra]))
 
+  const emailDestino = toOverride ?? clienteRaw.email
   const { error: emailError } = await enviarCotizacion({
-    to:               clienteRaw.email,
+    to:               emailDestino,
     cc:               ccFinal,
     numeroCotizacion: cot.numero,
     pdfBuffer,

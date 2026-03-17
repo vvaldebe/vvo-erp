@@ -6,12 +6,20 @@ import { toast } from 'sonner'
 import { cambiarEstadoCotizacion, clonarCotizacion } from '@/app/actions/cotizaciones'
 import EnviarEmailModal from './EnviarEmailModal'
 
+interface Contacto {
+  id: string
+  nombre: string
+  email: string | null
+  cargo?: string | null
+}
+
 interface AccionesCotizacionProps {
   id: string
   numero: string
   estado: string
   clienteNombre: string
   clienteEmail: string | null | undefined
+  contactos?: Contacto[]
   total: string
   validaHasta: string
   asunto?: string | null
@@ -23,6 +31,7 @@ export default function AccionesCotizacion({
   estado,
   clienteNombre,
   clienteEmail,
+  contactos = [],
   total,
   validaHasta,
   asunto,
@@ -166,6 +175,7 @@ export default function AccionesCotizacion({
           numero={numero}
           clienteNombre={clienteNombre}
           clienteEmail={clienteEmail}
+          contactos={contactos}
           total={total}
           validaHasta={validaHasta}
           asuntoCotizacion={asunto ?? undefined}

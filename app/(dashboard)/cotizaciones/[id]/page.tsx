@@ -94,16 +94,19 @@ export default async function CotizacionDetallePage({
 
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
 
-  // Email: directo o desde contacto principal
+  // Contactos del cliente (para selector en modal de envío)
+  let contactos: { id: string; nombre: string; email: string | null; cargo: string | null; es_principal: boolean }[] = []
   let clienteEmail: string | null = clienteRaw?.email ?? null
-  if (!clienteEmail && clienteRaw?.id) {
-    const { data: contacto } = await supabase
+  if (clienteRaw?.id) {
+    const { data: contactosData } = await supabase
       .from('contactos')
-      .select('email')
+      .select('id, nombre, email, cargo, es_principal')
       .eq('cliente_id', clienteRaw.id)
-      .eq('es_principal', true)
-      .maybeSingle()
-    clienteEmail = contacto?.email ?? null
+      .order('es_principal', { ascending: false })
+    contactos = contactosData ?? []
+    if (!clienteEmail) {
+      clienteEmail = contactos.find((c) => c.es_principal)?.email ?? contactos[0]?.email ?? null
+    }
   }
 
   return (
@@ -128,6 +131,7 @@ export default async function CotizacionDetallePage({
           estado={cot.estado}
           clienteNombre={clienteRaw?.nombre ?? ''}
           clienteEmail={clienteEmail}
+          contactos={contactos}
           total={clp(cot.total)}
           validaHasta={fecha(cot.valida_hasta)}
           asunto={cot.asunto}
