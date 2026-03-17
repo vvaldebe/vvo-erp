@@ -12,7 +12,8 @@
       "Bash(pkill:*)",
       "Bash(curl:*)",
       "Bash(ls:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(which gh:*)"
     ]
   }
 }

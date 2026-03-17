@@ -23,7 +23,7 @@ export async function enviarCotizacion({
   const bodyHtml = (cuerpo ?? '').replace(/\n/g, '<br/>')
 
   return getResend().emails.send({
-    from: 'cotizaciones@vvo.cl',
+    from: 'cotizaciones@mail.vvo.cl',
     to,
     subject,
     html: `

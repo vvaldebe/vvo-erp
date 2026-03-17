@@ -163,7 +163,7 @@ export async function enviarOtAProduccion(
     process.env.NEXT_PUBLIC_EMPRESA_EMAIL ?? 'victor@vvo.cl'
 
   const { error: emailError } = await getResend().emails.send({
-    from: 'cotizaciones@vvo.cl',
+    from: 'cotizaciones@mail.vvo.cl',
     to: destinatario,
     subject: `OT ${ot.numero} — Lista para producción`,
     html: `
