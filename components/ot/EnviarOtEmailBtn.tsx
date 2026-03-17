@@ -34,7 +34,7 @@ export default function EnviarOtEmailBtn({ otId, otNumero }: EnviarOtEmailBtnPro
       className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border rounded-[6px] transition-colors disabled:opacity-50 ${
         sent
           ? 'border-green-500 text-green-600 bg-green-50'
-          : 'border-[#e4e4e7] text-[#09090b] hover:bg-[#fafafa]'
+          : 'border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-muted)]'
       }`}
     >
       {isPending ? (
