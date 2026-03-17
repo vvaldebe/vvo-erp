@@ -8,12 +8,14 @@ export function getResend() {
 
 export async function enviarCotizacion({
   to,
+  cc,
   numeroCotizacion,
   pdfBuffer,
   asunto,
   cuerpo,
 }: {
   to: string
+  cc?: string[]
   numeroCotizacion: string
   pdfBuffer: Buffer
   asunto?: string
@@ -25,6 +27,7 @@ export async function enviarCotizacion({
   return getResend().emails.send({
     from: 'cotizaciones@mail.vvo.cl',
     to,
+    ...(cc && cc.length > 0 ? { cc } : {}),
     subject,
     html: `
       <div style="font-family:sans-serif;font-size:14px;color:#1a1a2e;max-width:600px">

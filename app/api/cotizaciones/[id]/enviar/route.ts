@@ -11,6 +11,7 @@ export async function POST(
   const body = await req.json().catch(() => ({}))
   const asunto: string | undefined = body.asunto
   const cuerpo: string | undefined = body.cuerpo
+  const ccExtra: string[] = Array.isArray(body.cc) ? body.cc : []
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -98,8 +99,12 @@ export async function POST(
   const pdfBuffer = await generarCotizacionPDF(pdfData)
 
   // Enviar email
+  const copiaInterna = process.env.NEXT_PUBLIC_EMPRESA_EMAIL ?? 'victor@vvo.cl'
+  const ccFinal = Array.from(new Set([copiaInterna, ...ccExtra]))
+
   const { error: emailError } = await enviarCotizacion({
     to:               clienteRaw.email,
+    cc:               ccFinal,
     numeroCotizacion: cot.numero,
     pdfBuffer,
     asunto,
