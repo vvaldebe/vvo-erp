@@ -187,7 +187,7 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
           <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Cotización</p>
           <h2 className="text-[22px] font-semibold text-[var(--text-primary)]">{cot.numero}</h2>

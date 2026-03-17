@@ -51,6 +51,13 @@ export default function AccionesOT({
 
   const flujo = FLUJO[estado]
 
+  const TOAST_MSG: Record<EstadoOT, string> = {
+    en_produccion: 'Producción iniciada — email enviado',
+    terminado:     'OT marcada como terminada',
+    entregado:     'OT marcada como entregada',
+    pendiente:     'OT vuelta a pendiente',
+  }
+
   function handleAvanzarEstado() {
     if (!flujo.next) return
     startTransition(async () => {
@@ -58,7 +65,7 @@ export default function AccionesOT({
       if ('error' in result) {
         toast.error(result.error)
       } else {
-        toast.success(`OT → ${flujo.next}`)
+        toast.success(TOAST_MSG[flujo.next!] ?? `OT → ${flujo.next}`)
         router.refresh()
       }
     })

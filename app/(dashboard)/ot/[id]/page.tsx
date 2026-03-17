@@ -4,7 +4,6 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import EstadoBadge from '@/components/shared/EstadoBadge'
 import AccionesOT from '@/components/ot/AccionesOT'
-import EnviarOtEmailBtn from '@/components/ot/EnviarOtEmailBtn'
 
 function clp(n: number) {
   return new Intl.NumberFormat('es-CL', {
@@ -265,18 +264,15 @@ export default async function OTDetallePage({
         <div className="w-full lg:w-72 lg:flex-shrink-0 lg:sticky lg:top-6 space-y-4">
 
           {/* Documentos */}
-          <div className="border border-[#e4e4e7] rounded-[8px] p-5">
-            <p className="text-[11px] font-medium text-[#a1a1aa] uppercase tracking-[0.1em] mb-3">Documentos</p>
-            <div className="space-y-2">
-              <a
-                href={`/api/pdf/ot/${id}`}
-                target="_blank"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-[#e4e4e7] text-[#09090b] rounded-[6px] hover:bg-[#fafafa] transition-colors"
-              >
-                Descargar PDF
-              </a>
-              <EnviarOtEmailBtn otId={id} otNumero={ot.numero} />
-            </div>
+          <div className="border border-[var(--border-default)] rounded-[8px] p-5">
+            <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-3">Documentos</p>
+            <a
+              href={`/api/pdf/ot/${id}`}
+              target="_blank"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-[var(--border-default)] text-[var(--text-primary)] rounded-[6px] hover:bg-[var(--bg-muted)] transition-colors"
+            >
+              Descargar PDF
+            </a>
           </div>
 
           {/* Facturar */}

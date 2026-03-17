@@ -39,7 +39,7 @@ export default function TopBar() {
   const { toggle } = useSidebar()
 
   return (
-    <header className="h-12 bg-[var(--bg-topbar)] border-b border-[var(--border-default)] flex items-center px-3 fixed top-0 left-0 right-0 md:left-[220px] z-10 gap-3">
+    <header className="h-12 bg-[var(--bg-topbar)] border-b border-[var(--border-default)] flex items-center px-3 fixed top-0 left-0 right-0 md:left-[220px] z-30 gap-3">
       {/* Hamburger — solo móvil */}
       <button
         type="button"
@@ -57,8 +57,10 @@ export default function TopBar() {
         )}
       </div>
 
-      {/* Center — search */}
-      <SearchBox />
+      {/* Center — search (oculto en móvil muy pequeño) */}
+      <div className="hidden sm:block">
+        <SearchBox />
+      </div>
 
       {/* Right — theme toggle */}
       <div className="flex items-center shrink-0">

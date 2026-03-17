@@ -22,6 +22,14 @@ export async function cambiarEstadoOT(
 
   if (error) return { error: error.message }
 
+  // Al iniciar producción, enviar email automáticamente (best effort)
+  if (estado === 'en_produccion') {
+    const emailResult = await enviarOtAProduccion(id)
+    if ('error' in emailResult) {
+      console.error(`[OT] Error enviando email de producción para ${id}:`, emailResult.error)
+    }
+  }
+
   revalidatePath('/ot')
   revalidatePath(`/ot/${id}`)
   return { success: true }
