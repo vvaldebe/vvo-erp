@@ -7,6 +7,7 @@ import ListaPanel, { type CotizacionRow } from '@/components/cotizaciones/ListaP
 import EstadoBadge from '@/components/shared/EstadoBadge'
 import NivelPrecioBadge from '@/components/shared/NivelPrecioBadge'
 import AccionesCotizacion from '@/components/cotizaciones/AccionesCotizacion'
+import GenerarOTBtn from '@/components/cotizaciones/GenerarOTBtn'
 import { Suspense } from 'react'
 
 function clp(n: number) {
@@ -157,13 +158,12 @@ async function fetchDetail(id: string) {
     clienteEmail = contacto?.email ?? null
   }
 
-  const { data: otExistente } = await supabase
-    .from('ordenes_trabajo')
-    .select('id, numero')
-    .eq('cotizacion_id', id)
-    .maybeSingle()
+  const [{ data: otExistente }, { data: maquinas }] = await Promise.all([
+    supabase.from('ordenes_trabajo').select('id, numero').eq('cotizacion_id', id).maybeSingle(),
+    supabase.from('maquinas').select('id, nombre').eq('activo', true).order('nombre'),
+  ])
 
-  return { cot, items: items ?? [], termsByItem, clienteEmail, otExistente: otExistente ?? null }
+  return { cot, items: items ?? [], termsByItem, clienteEmail, otExistente: otExistente ?? null, maquinas: maquinas ?? [] }
 }
 
 // ── Detail UI ─────────────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ async function fetchDetail(id: string) {
 type DetailData = NonNullable<Awaited<ReturnType<typeof fetchDetail>>>
 
 function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
-  const { cot, items, termsByItem, clienteEmail, otExistente } = detail
+  const { cot, items, termsByItem, clienteEmail, otExistente, maquinas } = detail
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
 
   return (
@@ -220,13 +220,12 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
             validaHasta={fecha(cot.valida_hasta)}
             asunto={cot.asunto}
           />
-          {cot.estado === 'aprobada' && otExistente && (
-            <Link
-              href={`/ot/${otExistente.id}`}
-              className="inline-flex items-center gap-1 text-[12px] font-medium text-green-400 hover:text-green-300 transition-colors"
-            >
-              OT: {otExistente.numero} →
-            </Link>
+          {cot.estado === 'aprobada' && (
+            <GenerarOTBtn
+              cotizacionId={id}
+              maquinas={maquinas}
+              otExistente={otExistente}
+            />
           )}
         </div>
       </div>

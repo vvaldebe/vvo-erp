@@ -1,3 +1,4 @@
+import React from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Building2, Mail, Phone, MapPin, Hash } from 'lucide-react'
@@ -251,8 +252,8 @@ export default async function CotizacionDetallePage({
               const terminaciones = termsByItem[item.id] ?? []
 
               return (
-                <>
-                  <tr key={item.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
+                <React.Fragment key={item.id}>
+                  <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
                     <td className="px-5 py-3.5">
                       <p className="text-[14px] font-medium text-[var(--text-primary)]">{prod?.nombre ?? item.descripcion ?? 'Ítem'}</p>
                       {prod?.nombre && item.descripcion && (
@@ -273,7 +274,7 @@ export default async function CotizacionDetallePage({
                       <td className="px-5 py-2 text-right text-[12px] text-[var(--text-secondary)] tabular-nums">{clp(t.precio * t.cantidad)}</td>
                     </tr>
                   ))}
-                </>
+                </React.Fragment>
               )
             })}
           </tbody>
