@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(mkdir -p /tmp/vvo_nextjs_init)",
+      "Read(//tmp/**)",
+      "Bash(npx create-next-app@latest . --typescript --eslint --app --no-src-dir --import-alias \"@/*\" --no-tailwind --yes)",
+      "Bash(BASE=\"/Users/vvaldebe/Desktop/Proyectos VVO PUBLICIDAD/Claude/vvo_erp\" __NEW_LINE_951247ca7bc9050c__ echo \"=== ROOT ===\" ls \"$BASE\" __NEW_LINE_951247ca7bc9050c__ echo \"\" echo \"=== app/ ===\" find \"$BASE/app\" -type f)",
+      "Bash(BASE=\"/Users/vvaldebe/Desktop/Proyectos VVO PUBLICIDAD/Claude/vvo_erp\")",
+      "Read(//Users/vvaldebe/Desktop/Proyectos VVO PUBLICIDAD/Claude/vvo_erp/$BASE/**)",
+      "Bash(node -e \"const p = require\\(''$BASE/package.json''\\); console.log\\(JSON.stringify\\({...p.dependencies, ...p.devDependencies}, null, 2\\)\\)\")",
+      "Bash(pkill:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(python3:*)"
+    ]
+  }
+}
