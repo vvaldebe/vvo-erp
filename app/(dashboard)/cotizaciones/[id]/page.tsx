@@ -35,7 +35,7 @@ export default async function CotizacionDetallePage({
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
       notas, asunto, created_at, valida_hasta,
-      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
+      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje, contactos ( email, telefono, es_principal ) )
     `)
     .eq('id', id)
     .single()
@@ -93,6 +93,9 @@ export default async function CotizacionDetallePage({
   }
 
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
+  const contactos = clienteRaw ? (Array.isArray(clienteRaw.contactos) ? clienteRaw.contactos : clienteRaw.contactos ? [clienteRaw.contactos] : []) : []
+  const contactoPrincipal = contactos.find((c: { es_principal: boolean }) => c.es_principal) ?? contactos[0] ?? null
+  const clienteEmail = clienteRaw?.email ?? (contactoPrincipal as { email: string | null } | null)?.email ?? null
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -115,7 +118,7 @@ export default async function CotizacionDetallePage({
           numero={cot.numero}
           estado={cot.estado}
           clienteNombre={clienteRaw?.nombre ?? ''}
-          clienteEmail={clienteRaw?.email}
+          clienteEmail={clienteEmail}
           total={clp(cot.total)}
           validaHasta={fecha(cot.valida_hasta)}
           asunto={cot.asunto}
