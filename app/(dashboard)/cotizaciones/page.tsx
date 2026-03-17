@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Plus, Building2, Mail, Phone, MapPin, Hash, ArrowRight } from 'lucide-react'
+import { Plus, Building2, Mail, Phone, MapPin, Hash, ArrowRight, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ListaPanel, { type CotizacionRow } from '@/components/cotizaciones/ListaPanel'
 import EstadoBadge from '@/components/shared/EstadoBadge'
@@ -28,7 +28,6 @@ export default async function CotizacionesPage({
   const { id: selectedId } = await searchParams
   const supabase = await createClient()
 
-  // Fetch list
   const { data: listData } = await supabase
     .from('cotizaciones')
     .select('id, numero, estado, total, created_at, clientes(nombre)')
@@ -50,7 +49,6 @@ export default async function CotizacionesPage({
     cliente_nombre: getNombre(row.clientes),
   }))
 
-  // Fetch detail if id provided
   let detail: Awaited<ReturnType<typeof fetchDetail>> | null = null
   if (selectedId) {
     detail = await fetchDetail(selectedId)
@@ -58,11 +56,17 @@ export default async function CotizacionesPage({
   }
 
   return (
-    /* Escape the p-8 wrapper with negative margins, fill full height */
-    <div className="-m-8 flex h-[calc(100vh-48px)]">
+    <div className="-m-4 md:-m-8 flex h-[calc(100dvh-48px-56px)] md:h-[calc(100dvh-48px)]">
 
-      {/* Left panel — 300px fixed */}
-      <div className="w-[300px] shrink-0 flex flex-col h-full">
+      {/* Left panel — lista */}
+      {/* Móvil: visible solo cuando NO hay detail seleccionado */}
+      {/* Desktop: siempre visible, 300px fijo */}
+      <div className={[
+        'shrink-0 flex flex-col h-full',
+        selectedId
+          ? 'hidden md:flex md:w-[300px]'
+          : 'flex w-full md:w-[300px]',
+      ].join(' ')}>
         {/* Panel header */}
         <div className="flex items-center justify-between px-3 py-3 border-b border-r border-[var(--border-default)] bg-[var(--bg-card)]">
           <h1 className="text-[14px] font-semibold text-[var(--text-primary)]">Cotizaciones</h1>
@@ -79,8 +83,13 @@ export default async function CotizacionesPage({
         </Suspense>
       </div>
 
-      {/* Right panel — detail */}
-      <div className="flex-1 overflow-y-auto bg-[var(--bg-page)]">
+      {/* Right panel — detalle */}
+      {/* Móvil: visible solo cuando HAY detail seleccionado */}
+      {/* Desktop: siempre visible, flex-1 */}
+      <div className={[
+        'flex-1 overflow-y-auto bg-[var(--bg-page)]',
+        selectedId ? 'flex flex-col' : 'hidden md:flex md:flex-col',
+      ].join(' ')}>
         {!selectedId ? (
           <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] gap-3">
             <ArrowRight className="w-8 h-8 opacity-20" />
@@ -94,7 +103,7 @@ export default async function CotizacionesPage({
   )
 }
 
-// ── Detail fetcher ───────────────────────────────────────────────────────────
+// ── Detail fetcher ────────────────────────────────────────────────────────────
 
 async function fetchDetail(id: string) {
   const supabase = await createClient()
@@ -103,7 +112,7 @@ async function fetchDetail(id: string) {
     .from('cotizaciones')
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
-      notas, asunto, created_at, valida_hasta,
+      notas, asunto, created_at, valida_hasta, enviada_at,
       clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
     `)
     .eq('id', id)
@@ -157,7 +166,7 @@ async function fetchDetail(id: string) {
   return { cot, items: items ?? [], termsByItem, clienteEmail, otExistente: otExistente ?? null }
 }
 
-// ── Detail UI ────────────────────────────────────────────────────────────────
+// ── Detail UI ─────────────────────────────────────────────────────────────────
 
 type DetailData = NonNullable<Awaited<ReturnType<typeof fetchDetail>>>
 
@@ -166,17 +175,32 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
 
   return (
-    <div className="max-w-3xl mx-auto p-8 space-y-6">
+    <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-5">
 
-      {/* Header + acciones */}
-      <div className="flex items-start justify-between">
+      {/* Back button — solo móvil */}
+      <Link
+        href="/cotizaciones"
+        className="md:hidden inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Cotizaciones
+      </Link>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Cotización</p>
-          <h2 className="text-[24px] font-semibold text-[var(--text-primary)]">{cot.numero}</h2>
+          <h2 className="text-[22px] font-semibold text-[var(--text-primary)]">{cot.numero}</h2>
           <p className="text-[13px] text-[var(--text-secondary)] mt-1">Emitida el {fecha(cot.created_at)}</p>
+          {cot.enviada_at && (
+            <p className="text-[12px] text-green-500 mt-0.5">
+              ✓ Enviada el {new Date(cot.enviada_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las{' '}
+              {new Date(cot.enviada_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:items-end gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <EstadoBadge estado={cot.estado} />
             <NivelPrecioBadge
               nivel={cot.nivel_precio as 'normal' | 'empresa' | 'agencia' | 'especial'}
@@ -216,91 +240,93 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
               href={`/clientes/${clienteRaw.id}`}
               className="flex items-center gap-2 text-[15px] font-semibold text-[var(--text-primary)] hover:text-[#7c3aed] transition-colors"
             >
-              <Building2 className="w-4 h-4 text-[var(--text-muted)]" />
+              <Building2 className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
               {clienteRaw.nombre}
             </Link>
             {clienteRaw.rut && (
               <p className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                <Hash className="w-3.5 h-3.5 text-[var(--text-faint)]" />{clienteRaw.rut}
+                <Hash className="w-3.5 h-3.5 text-[var(--text-faint)] shrink-0" />{clienteRaw.rut}
               </p>
             )}
             {clienteRaw.email && (
-              <p className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                <Mail className="w-3.5 h-3.5 text-[var(--text-faint)]" />{clienteRaw.email}
+              <p className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)] break-all">
+                <Mail className="w-3.5 h-3.5 text-[var(--text-faint)] shrink-0" />{clienteRaw.email}
               </p>
             )}
             {clienteRaw.telefono && (
               <p className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                <Phone className="w-3.5 h-3.5 text-[var(--text-faint)]" />{clienteRaw.telefono}
+                <Phone className="w-3.5 h-3.5 text-[var(--text-faint)] shrink-0" />{clienteRaw.telefono}
               </p>
             )}
             {clienteRaw.direccion && (
               <p className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                <MapPin className="w-3.5 h-3.5 text-[var(--text-faint)]" />{clienteRaw.direccion}
+                <MapPin className="w-3.5 h-3.5 text-[var(--text-faint)] shrink-0" />{clienteRaw.direccion}
               </p>
             )}
           </div>
         </div>
       )}
 
-      {/* Ítems */}
+      {/* Ítems — tabla con scroll horizontal en móvil */}
       <div className="border border-[var(--border-default)] rounded-[8px] overflow-hidden">
         <div className="px-4 py-2.5 border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
           <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em]">Ítems</p>
         </div>
-        <table className="w-full bg-[var(--bg-card)]">
-          <thead>
-            <tr className="border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
-              <th className="text-left px-4 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Descripción</th>
-              <th className="text-left px-3 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Dimensiones</th>
-              <th className="text-right px-3 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Cant.</th>
-              <th className="text-right px-3 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Precio</th>
-              <th className="text-right px-4 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => {
-              const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
-              const isM2 = prod?.unidad === 'm2' && item.ancho != null && item.alto != null
-              const isMl = prod?.unidad === 'ml' && item.ancho != null
-              const dims = isM2
-                ? `${item.ancho!.toFixed(2)} × ${item.alto!.toFixed(2)} m²`
-                : isMl ? `${item.ancho!.toFixed(2)} ml` : '—'
-              const terms = termsByItem[item.id] ?? []
+        <div className="overflow-x-auto">
+          <table className="w-full bg-[var(--bg-card)] min-w-[480px]">
+            <thead>
+              <tr className="border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
+                <th className="text-left px-4 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Descripción</th>
+                <th className="text-left px-3 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Dimensiones</th>
+                <th className="text-right px-3 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Cant.</th>
+                <th className="text-right px-3 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Precio</th>
+                <th className="text-right px-4 h-8 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => {
+                const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
+                const isM2 = prod?.unidad === 'm2' && item.ancho != null && item.alto != null
+                const isMl = prod?.unidad === 'ml' && item.ancho != null
+                const dims = isM2
+                  ? `${item.ancho!.toFixed(2)} × ${item.alto!.toFixed(2)} m²`
+                  : isMl ? `${item.ancho!.toFixed(2)} ml` : '—'
+                const terms = termsByItem[item.id] ?? []
 
-              return (
-                <React.Fragment key={item.id}>
-                  <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="text-[13px] font-medium text-[var(--text-primary)]">{prod?.nombre ?? item.descripcion ?? 'Ítem'}</p>
-                      {prod?.nombre && item.descripcion && (
-                        <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-[13px] text-[var(--text-secondary)]">{dims}</td>
-                    <td className="px-3 py-3 text-right text-[13px] text-[var(--text-primary)] tabular-nums">{item.cantidad}</td>
-                    <td className="px-3 py-3 text-right text-[13px] text-[var(--text-primary)] tabular-nums">{clp(item.precio_unitario)}</td>
-                    <td className="px-4 py-3 text-right text-[13px] font-semibold text-[var(--text-primary)] tabular-nums">{clp(item.subtotal)}</td>
-                  </tr>
-                  {terms.map((t, j) => (
-                    <tr key={`${item.id}-t${j}`} className="border-b border-[var(--border-subtle)] bg-[var(--bg-muted)]">
-                      <td className="px-4 py-2 pl-9 text-[11px] text-[var(--text-secondary)]">+ {t.nombre}</td>
-                      <td className="px-3 py-2" />
-                      <td className="px-3 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums">{t.cantidad}</td>
-                      <td className="px-3 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums">{clp(t.precio)}</td>
-                      <td className="px-4 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums">{clp(t.precio * t.cantidad)}</td>
+                return (
+                  <React.Fragment key={item.id}>
+                    <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="text-[13px] font-medium text-[var(--text-primary)]">{prod?.nombre ?? item.descripcion ?? 'Ítem'}</p>
+                        {prod?.nombre && item.descripcion && (
+                          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-[13px] text-[var(--text-secondary)] whitespace-nowrap">{dims}</td>
+                      <td className="px-3 py-3 text-right text-[13px] text-[var(--text-primary)] tabular-nums">{item.cantidad}</td>
+                      <td className="px-3 py-3 text-right text-[13px] text-[var(--text-primary)] tabular-nums whitespace-nowrap">{clp(item.precio_unitario)}</td>
+                      <td className="px-4 py-3 text-right text-[13px] font-semibold text-[var(--text-primary)] tabular-nums whitespace-nowrap">{clp(item.subtotal)}</td>
                     </tr>
-                  ))}
-                </React.Fragment>
-              )
-            })}
-          </tbody>
-        </table>
+                    {terms.map((t, j) => (
+                      <tr key={`${item.id}-t${j}`} className="border-b border-[var(--border-subtle)] bg-[var(--bg-muted)]">
+                        <td className="px-4 py-2 pl-9 text-[11px] text-[var(--text-secondary)]">+ {t.nombre}</td>
+                        <td className="px-3 py-2" />
+                        <td className="px-3 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums">{t.cantidad}</td>
+                        <td className="px-3 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums whitespace-nowrap">{clp(t.precio)}</td>
+                        <td className="px-4 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums whitespace-nowrap">{clp(t.precio * t.cantidad)}</td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Totales */}
       <div className="flex justify-end">
-        <div className="w-64 border border-[var(--border-default)] rounded-[8px] overflow-hidden bg-[var(--bg-card)]">
+        <div className="w-full sm:w-64 border border-[var(--border-default)] rounded-[8px] overflow-hidden bg-[var(--bg-card)]">
           <div className="px-4 py-3 flex justify-between text-[13px] text-[var(--text-secondary)] border-b border-[var(--border-subtle)]">
             <span>Subtotal neto</span>
             <span className="tabular-nums">{clp(cot.subtotal)}</span>
