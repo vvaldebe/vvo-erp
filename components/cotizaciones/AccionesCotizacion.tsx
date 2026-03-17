@@ -14,6 +14,7 @@ interface AccionesCotizacionProps {
   clienteEmail: string | null | undefined
   total: string
   validaHasta: string
+  asunto?: string | null
 }
 
 export default function AccionesCotizacion({
@@ -24,6 +25,7 @@ export default function AccionesCotizacion({
   clienteEmail,
   total,
   validaHasta,
+  asunto,
 }: AccionesCotizacionProps) {
   const router = useRouter()
   const [isPending,  startTransition]  = useTransition()
@@ -166,6 +168,7 @@ export default function AccionesCotizacion({
           clienteEmail={clienteEmail}
           total={total}
           validaHasta={validaHasta}
+          asuntoCotizacion={asunto ?? undefined}
           onClose={() => setModalEmail(false)}
         />
       )}

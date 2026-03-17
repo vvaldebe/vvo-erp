@@ -17,7 +17,7 @@ export default async function EditarCotizacionPage({
   const { data: cot, error } = await supabase
     .from('cotizaciones')
     .select(`
-      id, numero, estado, nivel_precio, notas, valida_hasta, cliente_id,
+      id, numero, estado, nivel_precio, notas, asunto, valida_hasta, cliente_id,
       clientes ( id, nombre, nivel_precio, descuento_porcentaje )
     `)
     .eq('id', id)
@@ -155,6 +155,7 @@ export default async function EditarCotizacionPage({
         } : null}
         initialNivel={cot.nivel_precio as NivelPrecio}
         initialNotas={cot.notas ?? ''}
+        initialAsunto={cot.asunto ?? ''}
         initialValidaHasta={cot.valida_hasta ?? ''}
         initialItems={initialItems}
       />

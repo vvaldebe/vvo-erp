@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generarCotizacionPDF } from '@/lib/pdf/generarCotizacion'
 import { enviarCotizacion } from '@/lib/email/resend'
+import { generarTokenAprobacion } from '@/app/actions/cotizaciones'
 
 export async function POST(
   req: NextRequest,
@@ -98,6 +99,21 @@ export async function POST(
 
   const pdfBuffer = await generarCotizacionPDF(pdfData)
 
+  // Generar token de aprobación
+  const token = await generarTokenAprobacion(id)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://sistema.vvo.cl'
+  const linkAprobacion = `${appUrl}/aprobar/${token}`
+
+  // Formatear total y validez para el email
+  const totalFormateado = new Intl.NumberFormat('es-CL', {
+    style: 'currency', currency: 'CLP', minimumFractionDigits: 0,
+  }).format(cot.total)
+  const validaHastaFormateada = cot.valida_hasta
+    ? new Date(cot.valida_hasta + 'T12:00:00').toLocaleDateString('es-CL', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+      })
+    : undefined
+
   // Enviar email
   const copiaInterna = process.env.NEXT_PUBLIC_EMPRESA_EMAIL ?? 'victor@vvo.cl'
   const ccFinal = Array.from(new Set([copiaInterna, ...ccExtra]))
@@ -109,6 +125,9 @@ export async function POST(
     pdfBuffer,
     asunto,
     cuerpo,
+    total:            totalFormateado,
+    validaHasta:      validaHastaFormateada,
+    linkAprobacion,
   })
 
   if (emailError) {

@@ -12,6 +12,7 @@ interface EnviarEmailModalProps {
   clienteEmail: string
   total: string
   validaHasta: string
+  asuntoCotizacion?: string
   onClose: () => void
 }
 
@@ -22,12 +23,16 @@ export default function EnviarEmailModal({
   clienteEmail,
   total,
   validaHasta,
+  asuntoCotizacion,
   onClose,
 }: EnviarEmailModalProps) {
   const router = useRouter()
   const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado]   = useState(false)
 
-  const defaultAsunto = `Cotización ${numero} — VVO Publicidad`
+  const defaultAsunto = asuntoCotizacion
+    ? `Cotización ${numero} — ${asuntoCotizacion} — VVO Publicidad`
+    : `Cotización ${numero} — VVO Publicidad`
   const defaultCuerpo = `Estimado/a ${clienteNombre},
 
 Junto con saludar, adjuntamos la cotización ${numero} por un total de ${total}.
@@ -76,9 +81,12 @@ VVO Publicidad`
         toast.error(json.error ?? 'Error al enviar')
       } else {
         const extras = ccList.length ? ` y ${ccList.length} más` : ''
-      toast.success(`Email enviado a ${clienteEmail}${extras}`)
-        onClose()
-        router.refresh()
+        toast.success(`Email enviado a ${clienteEmail}${extras}`)
+        setEnviado(true)
+        setTimeout(() => {
+          onClose()
+          router.refresh()
+        }, 1500)
       }
     } catch {
       toast.error('Error de conexión')
@@ -187,10 +195,16 @@ VVO Publicidad`
           </button>
           <button
             onClick={handleEnviar}
-            disabled={enviando || !asunto.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold rounded-[6px] transition-colors disabled:opacity-50"
+            disabled={enviando || enviado || !asunto.trim()}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-[6px] transition-colors disabled:opacity-50 ${
+              enviado
+                ? 'bg-green-600 hover:bg-green-600 cursor-default'
+                : 'bg-[#7c3aed] hover:bg-[#6d28d9]'
+            }`}
           >
-            {enviando ? (
+            {enviado ? (
+              <>&#10003; Enviado</>
+            ) : enviando ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</>
             ) : (
               <><Send className="w-4 h-4" /> Enviar</>

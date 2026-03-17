@@ -3,10 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { generarCotizacionPDF } from '@/lib/pdf/generarCotizacion'
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const sinDatosBancarios = req.nextUrl.searchParams.get('sinDatosBancarios') === '1'
   const supabase = await createClient()
 
   // Verificar sesión
@@ -144,9 +145,9 @@ export async function GET(
     empresaEmail:     cfg('empresa_email',     'victor@vvo.cl') || undefined,
     empresaWeb:       cfg('empresa_web',       'vvo.cl') || undefined,
     // Condiciones de pago
-    condicionesPago: cfg('condiciones_pago') || undefined,
-    // Datos bancarios
-    datosBancarios: {
+    condicionesPago: sinDatosBancarios ? undefined : (cfg('condiciones_pago') || undefined),
+    // Datos bancarios (se omiten si sinDatosBancarios=1)
+    datosBancarios: sinDatosBancarios ? undefined : {
       banco:             cfg('banco_nombre')              || undefined,
       tipoCuenta:        cfg('banco_tipo_cuenta')         || undefined,
       numeroCuenta:      cfg('banco_numero_cuenta')       || undefined,

@@ -101,6 +101,8 @@ export interface Cotizacion {
   iva: number
   total: number
   notas?: string
+  asunto?: string
+  token_aprobacion?: string | null
   enviada_at?: string
   valida_hasta?: string
   created_at: string

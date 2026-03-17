@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import EstadoBadge from '@/components/shared/EstadoBadge'
 import NivelPrecioBadge from '@/components/shared/NivelPrecioBadge'
 import AccionesCotizacion from '@/components/cotizaciones/AccionesCotizacion'
+import DatosPagoCotizacion from '@/components/cotizaciones/DatosPagoCotizacion'
 
 function clp(n: number) {
   return new Intl.NumberFormat('es-CL', {
@@ -33,11 +34,36 @@ export default async function CotizacionDetallePage({
     .from('cotizaciones')
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
-      notas, created_at, valida_hasta,
+      notas, asunto, created_at, valida_hasta,
       clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
     `)
     .eq('id', id)
     .single()
+
+  // Datos bancarios y condiciones de pago desde configuración
+  const CONFIG_PAGO_CLAVES = [
+    'banco_nombre', 'banco_tipo_cuenta', 'banco_numero_cuenta',
+    'banco_titular', 'banco_rut_titular', 'banco_email_transferencia',
+    'condiciones_pago',
+  ]
+  const { data: configRows } = await supabase
+    .from('configuracion')
+    .select('clave, valor')
+    .in('clave', CONFIG_PAGO_CLAVES)
+
+  function cfgVal(clave: string) {
+    return configRows?.find((r) => r.clave === clave)?.valor ?? null
+  }
+
+  const datosPago = {
+    banco:              cfgVal('banco_nombre'),
+    tipoCuenta:         cfgVal('banco_tipo_cuenta'),
+    numeroCuenta:       cfgVal('banco_numero_cuenta'),
+    titular:            cfgVal('banco_titular'),
+    rutTitular:         cfgVal('banco_rut_titular'),
+    emailTransferencia: cfgVal('banco_email_transferencia'),
+    condicionesPago:    cfgVal('condiciones_pago'),
+  }
 
   if (cotError || !cot) notFound()
 
@@ -92,6 +118,7 @@ export default async function CotizacionDetallePage({
           clienteEmail={clienteRaw?.email}
           total={clp(cot.total)}
           validaHasta={fecha(cot.valida_hasta)}
+          asunto={cot.asunto}
         />
       </div>
 
@@ -100,6 +127,9 @@ export default async function CotizacionDetallePage({
         <div>
           <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Cotización</p>
           <h1 className="text-[26px] font-semibold text-[var(--text-primary)]">{cot.numero}</h1>
+          {cot.asunto && (
+            <p className="text-[15px] font-medium text-[var(--text-secondary)] mt-1">{cot.asunto}</p>
+          )}
           <p className="text-[13px] text-[var(--text-secondary)] mt-1">Emitida el {fecha(cot.created_at)}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -239,8 +269,22 @@ export default async function CotizacionDetallePage({
         </div>
       )}
 
+      {/* Datos de pago */}
+      <DatosPagoCotizacion
+        cotizacionId={id}
+        datosBancarios={{
+          banco:              datosPago.banco ?? undefined,
+          tipoCuenta:         datosPago.tipoCuenta ?? undefined,
+          numeroCuenta:       datosPago.numeroCuenta ?? undefined,
+          titular:            datosPago.titular ?? undefined,
+          rutTitular:         datosPago.rutTitular ?? undefined,
+          emailTransferencia: datosPago.emailTransferencia ?? undefined,
+        }}
+        condicionesPago={datosPago.condicionesPago ?? undefined}
+      />
+
       <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
-        Precios netos, no incluyen IVA. Validez 30 días desde emisión. Sujeto a disponibilidad de materiales.
+        Precios netos, no incluyen IVA. Validez según fecha indicada. Sujeto a disponibilidad de materiales.
       </p>
 
     </div>

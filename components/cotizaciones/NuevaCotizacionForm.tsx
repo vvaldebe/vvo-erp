@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useCallback, useEffect } from 'react'
+import { useState, useTransition, useCallback, useEffect, useRef } from 'react'
 import {
   useForm,
   useFieldArray,
@@ -20,6 +20,8 @@ import {
   formatCLP,
 } from '@/lib/utils/calculos'
 import type { NivelPrecio, UnidadMedida } from '@/types/database.types'
+
+const DRAFT_KEY = 'vvo_cotizacion_draft'
 
 // ── Tipos de props ──────────────────────────────────────────────────────────
 
@@ -82,6 +84,7 @@ interface Props {
   initialCliente?:    ClienteOption | null
   initialNivel?:      NivelPrecio
   initialNotas?:      string
+  initialAsunto?:     string
   initialValidaHasta?: string
   initialItems?:      InitialItem[]
 }
@@ -112,6 +115,7 @@ const formSchema = z.object({
   valida_hasta: z.string().optional().nullable(),
   nivel_precio: z.enum(['normal', 'empresa', 'agencia', 'especial']),
   notas:        z.string().optional().nullable(),
+  asunto:       z.string().optional().nullable(),
   items:        z.array(itemSchema).min(1, 'Debe agregar al menos un ítem'),
 })
 
@@ -169,6 +173,7 @@ export default function NuevaCotizacionForm({
   initialCliente    = null,
   initialNivel      = 'normal',
   initialNotas      = '',
+  initialAsunto     = '',
   initialValidaHasta,
   initialItems      = [],
 }: Props) {
@@ -176,6 +181,9 @@ export default function NuevaCotizacionForm({
   const esEdicion = !!cotizacionId
   const [isPending, startTransition] = useTransition()
   const [serverError, setServerError] = useState<string | null>(null)
+  const [draftBanner, setDraftBanner] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Estado de cliente seleccionado
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteOption | null>(initialCliente)
@@ -188,13 +196,15 @@ export default function NuevaCotizacionForm({
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      valida_hasta: initialValidaHasta || addDays(hoy, 30),
+      valida_hasta: initialValidaHasta || addDays(hoy, 3),
       nivel_precio: initialNivel,
       notas:        initialNotas,
+      asunto:       initialAsunto,
       items:        initialItems.map((item) => ({
         producto_id:     item.producto_id,
         descripcion:     item.descripcion,
@@ -215,6 +225,9 @@ export default function NuevaCotizacionForm({
   // Watch en tiempo real para resumen
   const watchedItems = useWatch({ control, name: 'items' })
   const nivel        = watch('nivel_precio')
+  const watchedNotas = watch('notas')
+  const watchedAsunto = watch('asunto')
+  const watchedValida = watch('valida_hasta')
 
   // Cálculo de subtotal total
   const subtotalNeto = (watchedItems ?? []).reduce((acc, item) => {
@@ -240,6 +253,105 @@ export default function NuevaCotizacionForm({
     setClienteSeleccionado(null)
     setValue('nivel_precio', 'normal')
   }, [setValue])
+
+  // Recalcular precios de ítems cuando cambia el nivel de precio
+  const prevNivelRef = useRef<NivelPrecio>(initialNivel)
+  useEffect(() => {
+    if (nivel === prevNivelRef.current) return
+    prevNivelRef.current = nivel
+    const currentItems = watchedItems ?? []
+    currentItems.forEach((item, index) => {
+      // Solo recalcular ítems que tienen un producto asignado
+      // Para eso necesitamos acceder a _producto del initialItems o al producto seleccionado
+      // Los productos están en el array `productos` prop; buscamos por producto_id
+      if (!item?.producto_id) return
+      const prod = productos.find((p) => p.id === item.producto_id)
+      if (!prod) return
+      const nuevoPrecio = getPrecioNivel(prod, nivel, clienteSeleccionado?.descuento_porcentaje ?? 0)
+      setValue(`items.${index}.precio_unitario`, nuevoPrecio)
+      // Recalcular subtotal del ítem
+      const ancho = Number(item.ancho) || 0
+      const alto  = Number(item.alto)  || 0
+      const cantidad = Number(item.cantidad) || 1
+      const unidad = prod.unidad
+      let nuevoSubtotal = 0
+      if (unidad === 'm2') nuevoSubtotal = nuevoPrecio * ancho * alto * cantidad
+      else if (unidad === 'ml') nuevoSubtotal = nuevoPrecio * ancho * cantidad
+      else nuevoSubtotal = nuevoPrecio * cantidad
+      setValue(`items.${index}.subtotal`, nuevoSubtotal)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nivel])
+
+  // Autoguardado en localStorage (solo nueva cotización, no edición)
+  useEffect(() => {
+    if (esEdicion) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      try {
+        const draft = {
+          nivel_precio: nivel,
+          notas:        watchedNotas,
+          asunto:       watchedAsunto,
+          valida_hasta: watchedValida,
+          cliente_id:   clienteSeleccionado?.id ?? null,
+          items:        watchedItems,
+        }
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+      } catch {
+        // localStorage no disponible
+      }
+    }, 2000)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nivel, watchedNotas, watchedAsunto, watchedValida, clienteSeleccionado, watchedItems, esEdicion])
+
+  // Leer draft al montar (solo nueva cotización)
+  useEffect(() => {
+    if (esEdicion || draftRestored) return
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      if (draft && draft.items && Array.isArray(draft.items) && draft.items.length > 0) {
+        setDraftBanner(true)
+      }
+    } catch {
+      // ignora errores de parse
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function restaurarDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      reset({
+        nivel_precio: draft.nivel_precio ?? 'normal',
+        notas:        draft.notas        ?? '',
+        asunto:       draft.asunto       ?? '',
+        valida_hasta: draft.valida_hasta ?? addDays(hoy, 3),
+        items:        draft.items        ?? [],
+      })
+      if (draft.cliente_id) {
+        const cli = clientes.find((c) => c.id === draft.cliente_id)
+        if (cli) setClienteSeleccionado(cli)
+      }
+    } catch {
+      // ignora
+    }
+    setDraftBanner(false)
+    setDraftRestored(true)
+  }
+
+  function descartarDraft() {
+    try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignora */ }
+    setDraftBanner(false)
+    setDraftRestored(true)
+  }
 
   const clientesFiltrados = clientes
     .filter((c) => c.nombre.toLowerCase().includes(clienteQuery.toLowerCase()))
@@ -269,6 +381,7 @@ export default function NuevaCotizacionForm({
       cliente_id:   clienteSeleccionado?.id ?? null,
       nivel_precio: values.nivel_precio,
       notas:        values.notas ?? null,
+      asunto:       values.asunto ?? null,
       valida_hasta: values.valida_hasta ?? null,
       items:        values.items.map((it, idx) => ({
         producto_id:     it.producto_id ?? null,
@@ -297,6 +410,11 @@ export default function NuevaCotizacionForm({
 
       if (result && 'error' in result) {
         setServerError(result.error)
+      } else {
+        // Limpiar draft en caso de éxito (el server action redirige)
+        if (!esEdicion) {
+          try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignora */ }
+        }
       }
       // Si éxito, el server action redirige
     })
@@ -308,6 +426,29 @@ export default function NuevaCotizacionForm({
 
         {/* ── Columna izquierda ──────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-5">
+
+          {/* Banner de borrador recuperado */}
+          {draftBanner && (
+            <div className="flex items-center justify-between gap-3 rounded-[6px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span>Borrador recuperado — ¿Continuar donde lo dejaste?</span>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={restaurarDraft}
+                  className="font-semibold hover:text-amber-900 underline"
+                >
+                  Sí, continuar
+                </button>
+                <button
+                  type="button"
+                  onClick={descartarDraft}
+                  className="text-amber-600 hover:text-amber-800"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
+          )}
 
           {serverError && (
             <div className="flex items-center gap-2 rounded-[6px] border border-red-100 bg-red-50 p-4 text-sm text-red-600">
@@ -353,6 +494,18 @@ export default function NuevaCotizacionForm({
                   className="flex h-10 w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/10 focus:border-[#7c3aed] transition-colors"
                 />
               </div>
+            </div>
+            {/* Asunto / referencia */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block">
+                Asunto / referencia
+              </label>
+              <input
+                type="text"
+                {...register('asunto')}
+                placeholder="Ej: Señalética tienda, Banner evento, Letrero fachada..."
+                className="flex h-10 w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/10 focus:border-[#7c3aed] transition-colors"
+              />
             </div>
           </section>
 
@@ -614,7 +767,6 @@ function ItemRow({
   const [productoDropdown, setProductoDropdown] = useState(false)
   const [productoSel,      setProductoSel]      = useState<ProductoOption | null>(initialProducto ?? null)
   const [mostrarTerms,     setMostrarTerms]      = useState(false)
-  const [mostrarDesc,      setMostrarDesc]       = useState(false)
   const [esMinutos,        setEsMinutos]         = useState(() => detectarModoMinutos(initialProducto?.nombre ?? ''))
   const [minimoMinutos,    setMinimoMinutos]     = useState<number | null>(null)
   const [mostrarNotaItem,  setMostrarNotaItem]   = useState(false)
@@ -737,26 +889,13 @@ function ItemRow({
                 )}
               </div>
             )}
-            {/* Descripción libre */}
-            {!productoSel && (
-              mostrarDesc ? (
-                <input
-                  type="text"
-                  placeholder="Descripción del ítem"
-                  {...register(`items.${index}.descripcion`)}
-                  autoFocus
-                  className={`${INPUT_BASE} w-full mt-1`}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setMostrarDesc(true)}
-                  className="text-xs text-[var(--text-muted)] hover:text-[#7c3aed] transition-colors mt-1"
-                >
-                  + descripción libre
-                </button>
-              )
-            )}
+            {/* Descripción libre — siempre visible */}
+            <input
+              type="text"
+              placeholder={productoSel ? 'Detalle adicional, ej: diseño ave + datos cliente' : 'Descripción del ítem'}
+              {...register(`items.${index}.descripcion`)}
+              className={`${INPUT_BASE} w-full mt-1`}
+            />
           </div>
           <button
             type="button"

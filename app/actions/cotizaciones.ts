@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { calcularIva } from '@/lib/utils/calculos'
 import { generarNumeroOT, generarNumeroCotizacion } from '@/lib/utils/numeracion'
+import { randomUUID } from 'crypto'
 
 // ── Schemas ────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ const cotizacionSchema = z.object({
   cliente_id:   z.string().uuid().optional().nullable(),
   nivel_precio: z.enum(['normal', 'empresa', 'agencia', 'especial']),
   notas:        z.string().optional().nullable(),
+  asunto:       z.string().optional().nullable(),
   valida_hasta: z.string().optional().nullable(),
   items:        z.array(cotizacionItemSchema).min(1, 'Debe agregar al menos un ítem'),
 })
@@ -70,6 +72,7 @@ export async function crearCotizacion(data: CotizacionFormData): Promise<Cotizac
       iva:          Math.round(iva),
       total:        Math.round(total),
       notas:        d.notas ?? null,
+      asunto:       d.asunto ?? null,
       valida_hasta: d.valida_hasta ?? null,
     })
     .select('id')
@@ -208,6 +211,7 @@ export async function actualizarCotizacion(
       iva:          Math.round(iva),
       total:        Math.round(total),
       notas:        d.notas ?? null,
+      asunto:       d.asunto ?? null,
       valida_hasta: d.valida_hasta ?? null,
       updated_at:   new Date().toISOString(),
     })
@@ -268,7 +272,7 @@ export async function clonarCotizacion(
   // Obtener cotización original
   const { data: original, error: origError } = await supabase
     .from('cotizaciones')
-    .select('cliente_id, nivel_precio, notas, subtotal, iva, total')
+    .select('cliente_id, nivel_precio, notas, asunto, subtotal, iva, total')
     .eq('id', id)
     .single()
 
@@ -293,7 +297,8 @@ export async function clonarCotizacion(
       iva:          original.iva,
       total:        original.total,
       notas:        original.notas,
-      valida_hasta: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+      asunto:       original.asunto,
+      valida_hasta: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
     })
     .select('id')
     .single()
@@ -345,4 +350,49 @@ export async function clonarCotizacion(
 
   revalidatePath('/cotizaciones')
   redirect(`/cotizaciones/${nueva.id}`)
+}
+
+// ── Generar token de aprobación ──────────────────────────────────────────────
+
+export async function generarTokenAprobacion(cotizacionId: string): Promise<string> {
+  const token = randomUUID()
+  const supabase = await createClient()
+  await supabase
+    .from('cotizaciones')
+    .update({ token_aprobacion: token })
+    .eq('id', cotizacionId)
+  return token
+}
+
+// ── Aprobar cotización por token (página pública) ────────────────────────────
+
+export async function aprobarCotizacionPorToken(
+  token: string
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient()
+
+  const { data: cot, error } = await supabase
+    .from('cotizaciones')
+    .select('id, estado')
+    .eq('token_aprobacion', token)
+    .single()
+
+  if (error || !cot) return { error: 'Cotización no encontrada o token inválido' }
+  if (cot.estado === 'aprobada') return { error: 'Esta cotización ya fue aprobada' }
+  if (cot.estado === 'rechazada') return { error: 'Esta cotización ya fue rechazada' }
+
+  const { error: updateError } = await supabase
+    .from('cotizaciones')
+    .update({
+      estado:           'aprobada',
+      token_aprobacion: null,
+      updated_at:       new Date().toISOString(),
+    })
+    .eq('id', cot.id)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath('/cotizaciones')
+  revalidatePath(`/cotizaciones/${cot.id}`)
+  return { success: true }
 }

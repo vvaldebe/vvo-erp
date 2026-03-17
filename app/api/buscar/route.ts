@@ -11,11 +11,12 @@ export async function GET(req: NextRequest) {
     { data: cotizaciones },
     { data: clientes },
     { data: ots },
+    { data: cotizacionItemMatches },
   ] = await Promise.all([
     supabase
       .from('cotizaciones')
       .select('id, numero, estado, clientes(nombre)')
-      .or(`numero.ilike.%${q}%`)
+      .or(`numero.ilike.%${q}%,asunto.ilike.%${q}%`)
       .limit(5),
     supabase
       .from('clientes')
@@ -27,16 +28,43 @@ export async function GET(req: NextRequest) {
       .select('id, numero, estado, clientes(nombre)')
       .or(`numero.ilike.%${q}%`)
       .limit(5),
+    // Buscar cotizaciones cuyos ítems tengan descripción que coincida
+    supabase
+      .from('cotizacion_items')
+      .select('cotizacion_id, descripcion')
+      .ilike('descripcion', `%${q}%`)
+      .limit(10),
   ])
 
+  // Deduplicar cotizaciones que ya aparecen por número
+  const cotizacionIdsYaEncontradas = new Set((cotizaciones ?? []).map((c) => c.id))
+
+  // IDs de cotizaciones encontradas por contenido de ítems
+  const cotizacionIdsPorItems = Array.from(
+    new Set((cotizacionItemMatches ?? []).map((i) => i.cotizacion_id))
+  ).filter((cid) => !cotizacionIdsYaEncontradas.has(cid))
+
+  // Cargar datos de cotizaciones encontradas por ítems
+  let cotizacionesPorItems: Array<{ id: string; numero: string; estado: string; clientes: { nombre: string }[] | { nombre: string } | null }> = []
+  if (cotizacionIdsPorItems.length > 0) {
+    const { data } = await supabase
+      .from('cotizaciones')
+      .select('id, numero, estado, clientes(nombre)')
+      .in('id', cotizacionIdsPorItems.slice(0, 5))
+    cotizacionesPorItems = (data ?? []) as typeof cotizacionesPorItems
+  }
+
+  const todasCotizaciones = [...(cotizaciones ?? []), ...cotizacionesPorItems]
+
   const results = [
-    ...(cotizaciones ?? []).map((c) => {
+    ...todasCotizaciones.map((c) => {
       const cliente = Array.isArray(c.clientes) ? c.clientes[0] : c.clientes
+      const itemDesc = cotizacionItemMatches?.find((i) => i.cotizacion_id === c.id)?.descripcion
       return {
         type: 'cotizacion' as const,
         id: c.id,
         label: c.numero,
-        sub: (cliente as { nombre?: string } | null)?.nombre ?? '',
+        sub: (cliente as { nombre?: string } | null)?.nombre ?? (itemDesc ? `ítem: ${itemDesc}` : ''),
         href: `/cotizaciones/${c.id}`,
         estado: c.estado,
       }
