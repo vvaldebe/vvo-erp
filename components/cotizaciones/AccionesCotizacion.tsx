@@ -71,10 +71,10 @@ export default function AccionesCotizacion({
       if ('error' in result) {
         toast.error(result.error)
       } else if (nuevoEstado === 'aprobada') {
-        toast.success('Cotización aprobada')
+        toast.success('Cotización aprobada ✓')
         router.refresh()
       } else {
-        toast.success('Cotización rechazada')
+        toast.error('Cotización rechazada')
         router.refresh()
       }
     })
