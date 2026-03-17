@@ -65,7 +65,7 @@ export default function TablaClientes({ clientes }: Props) {
 
       {/* Tabla */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[500px]">
           <thead>
             <tr className="bg-[var(--bg-muted)] border-b border-[var(--border-default)]">
               <th className="text-left px-4 h-9 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Nombre</th>

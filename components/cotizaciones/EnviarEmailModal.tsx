@@ -210,17 +210,17 @@ VVO Publicidad`
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[var(--border-default)]">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 px-5 py-4 border-t border-[var(--border-default)]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[var(--text-primary)] transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-[#6b7280] hover:text-[var(--text-primary)] transition-colors w-full sm:w-auto text-center"
           >
             Cancelar
           </button>
           <button
             onClick={handleEnviar}
             disabled={enviando || enviado || !asunto.trim()}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-[6px] transition-colors disabled:opacity-50 ${
+            className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-semibold rounded-[6px] transition-colors disabled:opacity-50 w-full sm:w-auto ${
               enviado
                 ? 'bg-green-600 hover:bg-green-600 cursor-default'
                 : 'bg-[#7c3aed] hover:bg-[#6d28d9]'

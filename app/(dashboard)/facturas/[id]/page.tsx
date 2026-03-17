@@ -56,12 +56,12 @@ export default async function FacturaDetallePage({ params }: { params: Promise<{
       <div className="flex items-center gap-3">
         <Link
           href="/facturas"
-          className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[#d4d4d8] transition-colors"
+          className="w-9 h-9 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[#d4d4d8] transition-colors shrink-0"
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-[20px] font-semibold text-[var(--text-primary)]">
               {factura.numero_sii ? `Factura N° ${factura.numero_sii}` : 'Factura sin folio SII'}
             </h1>
@@ -80,7 +80,7 @@ export default async function FacturaDetallePage({ params }: { params: Promise<{
           <div className="border border-[var(--border-default)] rounded-[8px] p-5 space-y-4">
             <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em]">Información</p>
 
-            <div className="grid grid-cols-2 gap-4 text-[13px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
               <div className="flex items-start gap-2.5">
                 <Building2 className="w-4 h-4 text-[var(--text-muted)] mt-0.5 shrink-0" />
                 <div>
@@ -177,7 +177,8 @@ export default async function FacturaDetallePage({ params }: { params: Promise<{
                 No se han registrado pagos
               </div>
             ) : (
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[400px]">
                 <thead>
                   <tr className="border-b border-[var(--border-subtle)]">
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Fecha</th>
@@ -197,6 +198,7 @@ export default async function FacturaDetallePage({ params }: { params: Promise<{
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
 

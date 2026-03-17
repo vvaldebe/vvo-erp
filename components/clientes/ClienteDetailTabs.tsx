@@ -112,7 +112,8 @@ export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props
           cotizaciones.length === 0 ? (
             <EmptyState message="Sin cotizaciones para este cliente" />
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[360px]">
               <thead>
                 <tr className="bg-[var(--bg-muted)] border-b border-[var(--border-default)]">
                   <th className="text-left px-5 h-9 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">N°</th>
@@ -145,6 +146,7 @@ export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props
                 ))}
               </tbody>
             </table>
+            </div>
           )
         )}
 
@@ -153,7 +155,8 @@ export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props
           ots.length === 0 ? (
             <EmptyState message="Sin órdenes de trabajo para este cliente" />
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[360px]">
               <thead>
                 <tr className="bg-[var(--bg-muted)] border-b border-[var(--border-default)]">
                   <th className="text-left px-5 h-9 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">N°</th>
@@ -186,6 +189,7 @@ export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props
                 ))}
               </tbody>
             </table>
+            </div>
           )
         )}
 
@@ -194,7 +198,8 @@ export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props
           facturas.length === 0 ? (
             <EmptyState message="Sin facturas para este cliente" />
           ) : (
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[360px]">
               <thead>
                 <tr className="bg-[var(--bg-muted)] border-b border-[var(--border-default)]">
                   <th className="text-left px-5 h-9 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">N° SII</th>
@@ -227,6 +232,7 @@ export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props
                 ))}
               </tbody>
             </table>
+            </div>
           )
         )}
       </div>

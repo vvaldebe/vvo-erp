@@ -128,19 +128,19 @@ export default async function OTDetallePage({
         <span className="text-[14px] font-medium text-[var(--text-primary)]">{ot.numero}</span>
       </div>
 
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
 
         {/* ── Columna principal ── */}
-        <div className="flex-1 min-w-0 space-y-5">
+        <div className="flex-1 min-w-0 space-y-5 w-full">
 
           {/* Header */}
-          <div className="border border-[var(--border-default)] rounded-[8px] p-5 flex items-start justify-between">
+          <div className="border border-[var(--border-default)] rounded-[8px] p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
               <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Orden de Trabajo</p>
               <h1 className="text-[26px] font-semibold text-[var(--text-primary)]">{ot.numero}</h1>
               <p className="text-[13px] text-[var(--text-secondary)] mt-1">Creada el {fecha(ot.created_at)}</p>
             </div>
-            <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col sm:items-end gap-2">
               <EstadoBadge estado={ot.estado as 'pendiente' | 'en_produccion' | 'terminado' | 'entregado'} />
               {ot.fecha_entrega && (
                 <p className="text-[12px] text-[var(--text-secondary)]">Entrega: <span className="font-medium text-[var(--text-primary)]">{fecha(ot.fecha_entrega)}</span></p>
@@ -189,7 +189,8 @@ export default async function OTDetallePage({
               <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
                 <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Trabajos</p>
               </div>
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px]">
                 <thead>
                   <tr className="border-b border-[var(--border-default)]">
                     <th className="text-left px-5 h-9 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Descripción</th>
@@ -227,6 +228,7 @@ export default async function OTDetallePage({
                 </tbody>
               </table>
 
+              </div>
               <div className="px-5 py-4 border-t border-[var(--border-default)] flex justify-end gap-8 bg-[var(--bg-muted)]">
                 <span className="text-[14px] text-[var(--text-secondary)]">Total</span>
                 <span className="text-[16px] font-semibold text-[var(--text-primary)] tabular-nums">{clp(ot.total)}</span>
@@ -260,7 +262,7 @@ export default async function OTDetallePage({
         </div>
 
         {/* ── Panel lateral ── */}
-        <div className="w-72 flex-shrink-0 sticky top-6 space-y-4">
+        <div className="w-full lg:w-72 lg:flex-shrink-0 lg:sticky lg:top-6 space-y-4">
 
           {/* Documentos */}
           <div className="border border-[#e4e4e7] rounded-[8px] p-5">

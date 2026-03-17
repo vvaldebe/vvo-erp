@@ -84,10 +84,10 @@ export default async function ClienteDetailPage({ params }: Props) {
   const showFantasia = cliente.nombre_fantasia && cliente.nombre_fantasia !== cliente.razon_social
 
   return (
-    <div className="-m-8 flex h-[calc(100vh-48px)]">
+    <div className="-m-4 md:-m-8 flex flex-col md:flex-row md:h-[calc(100vh-48px)]">
 
       {/* ── Left panel ──────────────────────────────────────────── */}
-      <aside className="w-[320px] shrink-0 border-r border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col overflow-y-auto">
+      <aside className="w-full md:w-[320px] md:shrink-0 border-b md:border-b-0 md:border-r border-[var(--border-default)] bg-[var(--bg-card)] flex flex-col md:overflow-y-auto">
 
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 h-12 border-b border-[var(--border-default)] shrink-0">
@@ -226,7 +226,7 @@ export default async function ClienteDetailPage({ params }: Props) {
       </aside>
 
       {/* ── Right panel ─────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 overflow-y-auto bg-[var(--bg-page)]">
+      <div className="flex-1 min-w-0 md:overflow-y-auto bg-[var(--bg-page)]">
         <ClienteDetailTabs
           cotizaciones={cotizaciones}
           ots={ots}

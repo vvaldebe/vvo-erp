@@ -460,7 +460,7 @@ export default function ClienteForm({ cliente, onSuccess }: ClienteFormProps) {
                 className="rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-3 space-y-3"
               >
                 {/* Row 1: nombre + cargo */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[12px] font-medium text-[var(--text-secondary)]">Nombre *</label>
                     <input
@@ -484,7 +484,7 @@ export default function ClienteForm({ cliente, onSuccess }: ClienteFormProps) {
                 </div>
 
                 {/* Row 2: email + telefono */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[12px] font-medium text-[var(--text-secondary)]">Email</label>
                     <input
@@ -580,19 +580,19 @@ export default function ClienteForm({ cliente, onSuccess }: ClienteFormProps) {
       )}
 
       {/* ── Actions ───────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 justify-end">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end">
         <button
           type="button"
           onClick={() => router.back()}
           disabled={isPending}
-          className="h-8 px-3.5 text-[13px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)] rounded-[6px] transition-colors disabled:opacity-50"
+          className="h-10 px-3.5 text-[13px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)] rounded-[6px] transition-colors disabled:opacity-50 w-full sm:w-auto"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center gap-2 h-8 px-3.5 text-[13px] bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium rounded-[6px] transition-colors disabled:opacity-50 min-w-[130px] justify-center"
+          className="inline-flex items-center gap-2 h-10 px-3.5 text-[13px] bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium rounded-[6px] transition-colors disabled:opacity-50 w-full sm:w-auto min-w-[130px] justify-center"
         >
           {isPending ? (
             <>

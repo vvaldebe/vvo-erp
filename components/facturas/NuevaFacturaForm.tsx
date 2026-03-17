@@ -118,7 +118,7 @@ export default function NuevaFacturaForm({ clientes, ots, cotizaciones, defaultO
       <div className="border border-[var(--border-default)] rounded-[8px] p-5 space-y-4">
         <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em]">Datos de la factura</p>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">N° SII (folio)</label>
             <input
@@ -138,7 +138,7 @@ export default function NuevaFacturaForm({ clientes, ots, cotizaciones, defaultO
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">OT de origen</label>
             <select value={otId} onChange={(e) => handleOtChange(e.target.value)} className={INPUT}>
@@ -155,7 +155,7 @@ export default function NuevaFacturaForm({ clientes, ots, cotizaciones, defaultO
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Fecha de emisión</label>
             <input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} className={INPUT} />

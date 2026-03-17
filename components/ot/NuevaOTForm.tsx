@@ -143,7 +143,7 @@ export default function NuevaOTForm({ numero, clientes, maquinas }: Props) {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Máquina */}
           <div className="space-y-1.5">
             <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Máquina</label>
@@ -198,7 +198,7 @@ export default function NuevaOTForm({ numero, clientes, maquinas }: Props) {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="space-y-1">
                   <label className="text-[11px] text-[var(--text-muted)] font-medium uppercase tracking-wide">Ancho (m)</label>
                   <input
@@ -255,7 +255,7 @@ export default function NuevaOTForm({ numero, clientes, maquinas }: Props) {
       </div>
 
       {/* Total + botón */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="text-[14px] text-[var(--text-secondary)]">
           Total estimado:{' '}
           <span className="font-semibold text-[var(--text-primary)] tabular-nums">
@@ -266,7 +266,7 @@ export default function NuevaOTForm({ numero, clientes, maquinas }: Props) {
           type="button"
           onClick={handleSubmit}
           disabled={isPending}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold rounded-[6px] transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold rounded-[6px] transition-colors disabled:opacity-50 w-full sm:w-auto"
         >
           {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando...</> : 'Crear OT'}
         </button>

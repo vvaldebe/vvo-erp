@@ -72,12 +72,12 @@ export default function GenerarOTModal({ cotizacionId, maquinas, onClose }: Prop
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5 flex justify-end gap-2">
+        <div className="px-5 pb-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="px-4 py-2 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[14px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-muted)] transition-colors disabled:opacity-50"
+            className="px-4 py-2.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[14px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-muted)] transition-colors disabled:opacity-50 w-full sm:w-auto text-center"
           >
             Cancelar
           </button>
@@ -85,7 +85,7 @@ export default function GenerarOTModal({ cotizacionId, maquinas, onClose }: Prop
             type="button"
             onClick={handleCrear}
             disabled={isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-[6px] bg-[var(--vvo-purple)] hover:bg-[var(--vvo-purple-light)] text-[14px] font-medium text-white transition-colors disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[6px] bg-[var(--vvo-purple)] hover:bg-[var(--vvo-purple-light)] text-[14px] font-medium text-white transition-colors disabled:opacity-50 w-full sm:w-auto"
           >
             {isPending && (
               <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">

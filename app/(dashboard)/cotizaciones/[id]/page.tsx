@@ -119,7 +119,7 @@ export default async function CotizacionDetallePage({
     <div className="max-w-4xl space-y-6">
 
       {/* Breadcrumb + acciones */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link
             href="/cotizaciones"
@@ -154,7 +154,7 @@ export default async function CotizacionDetallePage({
       </div>
 
       {/* Header de la cotización */}
-      <div className="flex items-start justify-between border border-[var(--border-default)] rounded-[8px] p-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border border-[var(--border-default)] rounded-[8px] p-5">
         <div>
           <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">Cotización</p>
           <h1 className="text-[26px] font-semibold text-[var(--text-primary)]">{cot.numero}</h1>
@@ -168,7 +168,7 @@ export default async function CotizacionDetallePage({
             </p>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col sm:items-end gap-2">
           <EstadoBadge estado={cot.estado} />
           <NivelPrecioBadge
             nivel={cot.nivel_precio as 'normal' | 'empresa' | 'agencia' | 'especial'}
@@ -227,7 +227,8 @@ export default async function CotizacionDetallePage({
         <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
           <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.1em]">Detalle de ítems</p>
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[540px]">
           <thead>
             <tr className="border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
               <th className="text-left px-5 h-9 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Descripción</th>
@@ -277,11 +278,12 @@ export default async function CotizacionDetallePage({
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Totales */}
       <div className="flex justify-end">
-        <div className="w-72 border border-[var(--border-default)] rounded-[8px] overflow-hidden">
+        <div className="w-full sm:w-72 border border-[var(--border-default)] rounded-[8px] overflow-hidden">
           <div className="px-5 py-3 flex justify-between text-[14px] text-[var(--text-secondary)] border-b border-[var(--border-subtle)]">
             <span>Subtotal neto</span>
             <span className="tabular-nums">{clp(cot.subtotal)}</span>

@@ -65,14 +65,14 @@ export default async function FacturasPage({
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold text-[var(--text-primary)]">Facturas</h1>
           <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">Seguimiento de facturas emitidas y pagos recibidos</p>
         </div>
         <Link
           href="/facturas/nueva"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold rounded-[6px] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold rounded-[6px] transition-colors w-full sm:w-auto justify-center"
         >
           <Plus className="w-4 h-4" />
           Nueva factura
@@ -80,7 +80,7 @@ export default async function FacturasPage({
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="border border-[var(--border-default)] rounded-[8px] p-4">
           <p className="text-[12px] text-[var(--text-secondary)]">Por cobrar</p>
           <p className="text-[24px] font-semibold text-[var(--text-primary)] tabular-nums mt-1">{clp(totalPendiente)}</p>
@@ -102,7 +102,7 @@ export default async function FacturasPage({
 
       {/* Filtros */}
       <div className="border border-[var(--border-default)] rounded-[8px] overflow-hidden">
-        <div className="flex border-b border-[var(--border-default)]">
+        <div className="flex overflow-x-auto border-b border-[var(--border-default)]">
           {TABS.map((tab) => (
             <Link
               key={tab.key}
@@ -124,7 +124,8 @@ export default async function FacturasPage({
             No hay facturas{filtro !== 'todas' ? ` con estado "${filtro}"` : ''}
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-[var(--border-subtle)]">
                 <th className="px-4 py-3 text-left text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">N° SII</th>
@@ -169,6 +170,7 @@ export default async function FacturasPage({
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

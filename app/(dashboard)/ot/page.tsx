@@ -52,14 +52,14 @@ export default async function OTPage() {
         </div>
         <Link
           href="/ot/nueva"
-          className="inline-flex items-center gap-1.5 px-3.5 h-8 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[13px] font-medium rounded-[6px] transition-colors"
+          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[13px] font-medium rounded-[6px] transition-colors"
         >
           + Nueva OT
         </Link>
       </div>
 
       {/* Cards de estado */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {ESTADOS.map((e) => (
           <div key={e} className="border border-[var(--border-default)] rounded-[8px] p-4">
             <p className="text-[12px] text-[var(--text-secondary)] mb-1 capitalize">{e.replace('_', ' ')}</p>
@@ -70,7 +70,8 @@ export default async function OTPage() {
 
       {/* Tabla */}
       <div className="border border-[var(--border-default)] rounded-[8px] overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
               <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">OT</th>
@@ -110,6 +111,7 @@ export default async function OTPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
     </div>

@@ -77,7 +77,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard icon={FileText}      label="Cotizaciones activas"  value={String(cotizacionesActivas ?? 0)} sub="borrador + enviadas"       href="/cotizaciones" />
         <MetricCard icon={ClipboardList} label="OTs en curso"          value={String(otsEnProduccion ?? 0)}    sub="pendiente + en producción" href="/ot" />
         <MetricCard icon={Receipt}       label="Facturas pendientes"   value={String(facturasPendientes ?? 0)} sub="sin pago registrado"       href="/facturas" />
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Mini kanban */}
-          <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)] px-0">
+          <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)]">
             {(['pendiente', 'en_produccion', 'terminado'] as const).map((e) => (
               <div key={e} className="p-4 text-center">
                 <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider mb-2">{e.replace('_', ' ')}</p>
