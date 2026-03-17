@@ -104,7 +104,7 @@ async function fetchDetail(id: string) {
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
       notas, asunto, created_at, valida_hasta,
-      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje, contactos ( email, es_principal ) )
+      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
     `)
     .eq('id', id)
     .single()
@@ -136,7 +136,19 @@ async function fetchDetail(id: string) {
     }
   }
 
-  return { cot, items: items ?? [], termsByItem }
+  const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
+  let clienteEmail: string | null = clienteRaw?.email ?? null
+  if (!clienteEmail && clienteRaw?.id) {
+    const { data: contacto } = await supabase
+      .from('contactos')
+      .select('email')
+      .eq('cliente_id', clienteRaw.id)
+      .eq('es_principal', true)
+      .maybeSingle()
+    clienteEmail = contacto?.email ?? null
+  }
+
+  return { cot, items: items ?? [], termsByItem, clienteEmail }
 }
 
 // ── Detail UI ────────────────────────────────────────────────────────────────
@@ -144,11 +156,8 @@ async function fetchDetail(id: string) {
 type DetailData = NonNullable<Awaited<ReturnType<typeof fetchDetail>>>
 
 function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
-  const { cot, items, termsByItem } = detail
+  const { cot, items, termsByItem, clienteEmail } = detail
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
-  const contactos = clienteRaw ? (Array.isArray((clienteRaw as { contactos?: unknown }).contactos) ? (clienteRaw as { contactos: { email: string | null; es_principal: boolean }[] }).contactos : []) : []
-  const contactoPrincipal = contactos.find((c) => c.es_principal) ?? contactos[0] ?? null
-  const clienteEmail = clienteRaw?.email ?? contactoPrincipal?.email ?? null
 
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-6">

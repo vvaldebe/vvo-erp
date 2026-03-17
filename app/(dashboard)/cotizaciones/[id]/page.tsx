@@ -35,7 +35,7 @@ export default async function CotizacionDetallePage({
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
       notas, asunto, created_at, valida_hasta, enviada_at,
-      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje, contactos ( email, telefono, es_principal ) )
+      clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
     `)
     .eq('id', id)
     .single()
@@ -93,9 +93,18 @@ export default async function CotizacionDetallePage({
   }
 
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
-  const contactos = clienteRaw ? (Array.isArray(clienteRaw.contactos) ? clienteRaw.contactos : clienteRaw.contactos ? [clienteRaw.contactos] : []) : []
-  const contactoPrincipal = contactos.find((c: { es_principal: boolean }) => c.es_principal) ?? contactos[0] ?? null
-  const clienteEmail = clienteRaw?.email ?? (contactoPrincipal as { email: string | null } | null)?.email ?? null
+
+  // Email: directo o desde contacto principal
+  let clienteEmail: string | null = clienteRaw?.email ?? null
+  if (!clienteEmail && clienteRaw?.id) {
+    const { data: contacto } = await supabase
+      .from('contactos')
+      .select('email')
+      .eq('cliente_id', clienteRaw.id)
+      .eq('es_principal', true)
+      .maybeSingle()
+    clienteEmail = contacto?.email ?? null
+  }
 
   return (
     <div className="max-w-4xl space-y-6">
