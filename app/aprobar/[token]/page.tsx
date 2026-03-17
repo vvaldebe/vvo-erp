@@ -1,5 +1,4 @@
-import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import AprobarCotizacionClient from './AprobarCotizacionClient'
 
 function clp(n: number) {
@@ -24,8 +23,8 @@ export default async function AprobarCotizacionPage({
 }) {
   const { token } = await params
 
-  // Usar cliente sin RLS (búsqueda por token público)
-  const supabase = await createClient()
+  // Admin client para bypassear RLS — página pública sin sesión
+  const supabase = createAdminClient()
 
   const { data: cot } = await supabase
     .from('cotizaciones')

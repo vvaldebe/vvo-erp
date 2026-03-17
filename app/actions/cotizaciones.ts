@@ -369,11 +369,13 @@ export async function generarTokenAprobacion(cotizacionId: string): Promise<stri
 export async function aprobarCotizacionPorToken(
   token: string
 ): Promise<{ success: true } | { error: string }> {
-  const supabase = await createClient()
+  // Admin client para bypassear RLS — acción pública sin sesión
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const supabase = createAdminClient()
 
   const { data: cot, error } = await supabase
     .from('cotizaciones')
-    .select('id, estado')
+    .select('id, numero, total, estado, clientes ( nombre )')
     .eq('token_aprobacion', token)
     .single()
 
@@ -391,6 +393,49 @@ export async function aprobarCotizacionPorToken(
     .eq('id', cot.id)
 
   if (updateError) return { error: updateError.message }
+
+  // Notificar a Victor por email
+  try {
+    const { getResend } = await import('@/lib/email/resend')
+    const clienteNombre = Array.isArray(cot.clientes)
+      ? (cot.clientes[0] as { nombre: string })?.nombre ?? 'Cliente'
+      : (cot.clientes as { nombre: string } | null)?.nombre ?? 'Cliente'
+    const totalFormateado = new Intl.NumberFormat('es-CL', {
+      style: 'currency', currency: 'CLP', minimumFractionDigits: 0,
+    }).format(cot.total)
+    const destinatario = process.env.NEXT_PUBLIC_EMPRESA_EMAIL ?? 'victor@vvo.cl'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://sistema.vvo.cl'
+
+    await getResend().emails.send({
+      from: 'cotizaciones@mail.vvo.cl',
+      to: destinatario,
+      subject: `✓ ${cot.numero} aprobada por ${clienteNombre}`,
+      html: `
+        <div style="font-family:sans-serif;font-size:14px;color:#1a1a2e;max-width:500px">
+          <div style="background:#1a1a2e;padding:20px 24px;border-radius:8px 8px 0 0">
+            <span style="color:#fff;font-size:18px;font-weight:700">VVO Publicidad</span>
+          </div>
+          <div style="border:1px solid #e5e7eb;border-top:none;padding:24px;border-radius:0 0 8px 8px">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin-bottom:20px">
+              <p style="margin:0;font-size:16px;font-weight:700;color:#166534">✓ Cotización aprobada</p>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px">
+              <tr><td style="padding:6px 0;color:#6b7280">Cotización</td><td style="font-weight:700">${cot.numero}</td></tr>
+              <tr><td style="padding:6px 0;color:#6b7280">Cliente</td><td>${clienteNombre}</td></tr>
+              <tr><td style="padding:6px 0;color:#6b7280">Total</td><td style="font-weight:700;font-size:15px">${totalFormateado}</td></tr>
+              <tr><td style="padding:6px 0;color:#6b7280">Aprobada</td><td>${new Date().toLocaleString('es-CL')}</td></tr>
+            </table>
+            <a href="${appUrl}/cotizaciones/${cot.id}"
+               style="display:inline-block;background:#3d1450;color:#fff;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">
+              Ver cotización →
+            </a>
+          </div>
+        </div>
+      `,
+    })
+  } catch {
+    // El email de notificación falla silenciosamente — no interrumpir la aprobación
+  }
 
   revalidatePath('/cotizaciones')
   revalidatePath(`/cotizaciones/${cot.id}`)
