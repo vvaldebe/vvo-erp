@@ -17,9 +17,11 @@ import {
   SlidersHorizontal,
   LogOut,
   Timer,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/app/actions/auth'
+import { useSidebar } from './SidebarContext'
 
 const navItems = [
   { href: '/',             label: 'Dashboard',          icon: LayoutDashboard, exact: true },
@@ -30,9 +32,9 @@ const navItems = [
 ]
 
 const adminItems = [
-  { href: '/admin/productos',      label: 'Productos',      icon: Package },
-  { href: '/admin/terminaciones',  label: 'Terminaciones',  icon: Scissors },
-  { href: '/admin/maquinas',       label: 'Máquinas',       icon: Printer },
+  { href: '/admin/productos',         label: 'Productos',         icon: Package },
+  { href: '/admin/terminaciones',     label: 'Terminaciones',     icon: Scissors },
+  { href: '/admin/maquinas',          label: 'Máquinas',          icon: Printer },
   { href: '/admin/materiales',        label: 'Materiales',        icon: Package2 },
   { href: '/admin/servicios-maquina', label: 'Servicios máquina', icon: Timer },
   { href: '/admin/configuracion',     label: 'Configuración',     icon: SlidersHorizontal },
@@ -43,11 +45,13 @@ function NavItem({
   label,
   icon: Icon,
   exact = false,
+  onNavigate,
 }: {
   href: string
   label: string
   icon: React.ElementType
   exact?: boolean
+  onNavigate?: () => void
 }) {
   const pathname = usePathname()
   const isActive = exact
@@ -57,14 +61,14 @@ function NavItem({
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className={cn(
-        'group flex items-center gap-2.5 px-2.5 py-1.5 rounded-[5px] transition-colors duration-100 cursor-pointer relative',
+        'group flex items-center gap-2.5 px-2.5 py-2 rounded-[5px] transition-colors duration-100 cursor-pointer relative',
         isActive
           ? 'bg-[#27272a] text-white'
           : 'text-[var(--text-secondary)] hover:bg-[#27272a] hover:text-[#e4e4e7]'
       )}
     >
-      {/* Barra izquierda violeta para activo */}
       {isActive && (
         <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-[#7c3aed] rounded-r-full" />
       )}
@@ -80,6 +84,7 @@ interface SidebarProps {
 
 export default function Sidebar({ userEmail }: SidebarProps) {
   const [isPending, startTransition] = useTransition()
+  const { isOpen, close } = useSidebar()
   const displayName = userEmail.split('@')[0]
 
   function handleSignOut() {
@@ -88,11 +93,10 @@ export default function Sidebar({ userEmail }: SidebarProps) {
     })
   }
 
-  return (
-    <aside className="w-[220px] h-screen bg-[var(--bg-sidebar)] border-r border-[var(--border-sidebar)] flex flex-col fixed left-0 top-0 z-20">
-
+  const sidebarContent = (
+    <aside className="w-[220px] h-full bg-[var(--bg-sidebar)] border-r border-[var(--border-sidebar)] flex flex-col">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-[var(--border-sidebar)]">
+      <div className="px-4 py-4 border-b border-[var(--border-sidebar)] flex items-center justify-between">
         <Image
           src="/logo-vvo.png"
           alt="VVO Publicidad"
@@ -101,12 +105,21 @@ export default function Sidebar({ userEmail }: SidebarProps) {
           className="object-contain object-left h-9 w-auto"
           priority
         />
+        {/* Close button — solo visible en móvil */}
+        <button
+          type="button"
+          onClick={close}
+          className="md:hidden p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[#27272a] hover:text-[#e4e4e7] transition-colors cursor-pointer"
+          aria-label="Cerrar menú"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Navegación */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-px">
         {navItems.map((item) => (
-          <NavItem key={item.href} {...item} />
+          <NavItem key={item.href} {...item} onNavigate={close} />
         ))}
 
         {/* Sección Admin */}
@@ -116,7 +129,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
           </p>
           <div className="space-y-px">
             {adminItems.map((item) => (
-              <NavItem key={item.href} {...item} />
+              <NavItem key={item.href} {...item} onNavigate={close} />
             ))}
           </div>
         </div>
@@ -144,5 +157,35 @@ export default function Sidebar({ userEmail }: SidebarProps) {
         </button>
       </div>
     </aside>
+  )
+
+  return (
+    <>
+      {/* Desktop sidebar — siempre visible */}
+      <div className="hidden md:block w-[220px] h-screen fixed left-0 top-0 z-20">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile drawer — overlay */}
+      {/* Backdrop */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/60 md:hidden transition-opacity duration-200',
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={close}
+        aria-hidden="true"
+      />
+
+      {/* Drawer panel */}
+      <div
+        className={cn(
+          'fixed top-0 left-0 z-50 h-full md:hidden transition-transform duration-250 ease-in-out',
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {sidebarContent}
+      </div>
+    </>
   )
 }

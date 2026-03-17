@@ -1,8 +1,10 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { Menu } from 'lucide-react'
 import SearchBox from './SearchBox'
 import ThemeToggle from './ThemeToggle'
+import { useSidebar } from './SidebarContext'
 
 const LABELS: Record<string, string> = {
   '/':                      'Dashboard',
@@ -34,13 +36,24 @@ function getLabel(pathname: string): string {
 export default function TopBar() {
   const pathname = usePathname()
   const label = getLabel(pathname)
+  const { toggle } = useSidebar()
 
   return (
-    <header className="h-12 bg-[var(--bg-topbar)] border-b border-[var(--border-default)] flex items-center px-4 fixed top-0 left-[220px] right-0 z-10 gap-4">
+    <header className="h-12 bg-[var(--bg-topbar)] border-b border-[var(--border-default)] flex items-center px-3 fixed top-0 left-0 right-0 md:left-[220px] z-10 gap-3">
+      {/* Hamburger — solo móvil */}
+      <button
+        type="button"
+        onClick={toggle}
+        className="md:hidden p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] transition-colors cursor-pointer shrink-0"
+        aria-label="Abrir menú"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
       {/* Left — breadcrumb */}
       <div className="flex-1 min-w-0">
         {label && (
-          <span className="text-[15px] font-medium text-[var(--text-primary)]">{label}</span>
+          <span className="text-[15px] font-medium text-[var(--text-primary)] truncate">{label}</span>
         )}
       </div>
 
@@ -48,7 +61,7 @@ export default function TopBar() {
       <SearchBox />
 
       {/* Right — theme toggle */}
-      <div className="flex items-center">
+      <div className="flex items-center shrink-0">
         <ThemeToggle />
       </div>
     </header>
