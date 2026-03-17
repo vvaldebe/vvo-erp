@@ -130,7 +130,7 @@ export async function crearCotizacion(data: CotizacionFormData): Promise<Cotizac
 export async function cambiarEstadoCotizacion(
   id: string,
   estado: 'aprobada' | 'rechazada'
-): Promise<{ error: string } | { success: true; otId?: string }> {
+): Promise<{ error: string } | { success: true }> {
   const supabase = await createClient()
 
   const { error } = await supabase
@@ -142,43 +142,6 @@ export async function cambiarEstadoCotizacion(
 
   revalidatePath('/cotizaciones')
   revalidatePath(`/cotizaciones/${id}`)
-
-  // Al aprobar, crear OT automáticamente
-  if (estado === 'aprobada') {
-    // Obtener datos de la cotización
-    const { data: cot } = await supabase
-      .from('cotizaciones')
-      .select('numero, cliente_id, subtotal, total')
-      .eq('id', id)
-      .single()
-
-    if (cot) {
-      // Correlativo para número OT
-      const { count } = await supabase
-        .from('ordenes_trabajo')
-        .select('*', { count: 'exact', head: true })
-
-      const numeroOT = generarNumeroOT((count ?? 0) + 1)
-
-      const { data: otRow } = await supabase
-        .from('ordenes_trabajo')
-        .insert({
-          numero:        numeroOT,
-          cotizacion_id: id,
-          cliente_id:    cot.cliente_id ?? null,
-          estado:        'pendiente',
-          subtotal:      cot.subtotal,
-          total:         cot.total,
-        })
-        .select('id')
-        .single()
-
-      if (otRow) {
-        revalidatePath('/ot')
-        return { success: true, otId: otRow.id }
-      }
-    }
-  }
 
   return { success: true }
 }
@@ -440,4 +403,63 @@ export async function aprobarCotizacionPorToken(
   revalidatePath('/cotizaciones')
   revalidatePath(`/cotizaciones/${cot.id}`)
   return { success: true }
+}
+
+// ── Crear OT desde cotización aprobada ──────────────────────────────────────
+
+export async function crearOTdesdeCotizacion(
+  cotizacionId: string,
+  maquinaId: string | null
+): Promise<{ error: string } | { otId: string }> {
+  const supabase = await createClient()
+
+  // 1. Fetch cotización y validar que existe y está aprobada
+  const { data: cot, error: cotError } = await supabase
+    .from('cotizaciones')
+    .select('id, numero, cliente_id, subtotal, total, estado')
+    .eq('id', cotizacionId)
+    .single()
+
+  if (cotError || !cot) return { error: 'Cotización no encontrada' }
+  if (cot.estado !== 'aprobada') return { error: 'La cotización debe estar aprobada para generar una OT' }
+
+  // 2. Verificar que no tenga ya una OT
+  const { data: otExistente } = await supabase
+    .from('ordenes_trabajo')
+    .select('id')
+    .eq('cotizacion_id', cotizacionId)
+    .maybeSingle()
+
+  if (otExistente) return { error: 'Ya existe una OT para esta cotización' }
+
+  // 3. Generar número OT
+  const { count } = await supabase
+    .from('ordenes_trabajo')
+    .select('*', { count: 'exact', head: true })
+
+  const numeroOT = generarNumeroOT((count ?? 0) + 1)
+
+  // 4. Insertar OT
+  const { data: otRow, error: otError } = await supabase
+    .from('ordenes_trabajo')
+    .insert({
+      numero:        numeroOT,
+      cotizacion_id: cotizacionId,
+      cliente_id:    cot.cliente_id ?? null,
+      maquina_id:    maquinaId ?? null,
+      estado:        'pendiente',
+      subtotal:      cot.subtotal,
+      total:         cot.total,
+    })
+    .select('id')
+    .single()
+
+  if (otError || !otRow) return { error: otError?.message ?? 'Error al crear la OT' }
+
+  // 5. Revalidar rutas
+  revalidatePath('/ot')
+  revalidatePath('/cotizaciones')
+  revalidatePath(`/cotizaciones/${cotizacionId}`)
+
+  return { otId: otRow.id }
 }

@@ -148,7 +148,13 @@ async function fetchDetail(id: string) {
     clienteEmail = contacto?.email ?? null
   }
 
-  return { cot, items: items ?? [], termsByItem, clienteEmail }
+  const { data: otExistente } = await supabase
+    .from('ordenes_trabajo')
+    .select('id, numero')
+    .eq('cotizacion_id', id)
+    .maybeSingle()
+
+  return { cot, items: items ?? [], termsByItem, clienteEmail, otExistente: otExistente ?? null }
 }
 
 // ── Detail UI ────────────────────────────────────────────────────────────────
@@ -156,7 +162,7 @@ async function fetchDetail(id: string) {
 type DetailData = NonNullable<Awaited<ReturnType<typeof fetchDetail>>>
 
 function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
-  const { cot, items, termsByItem, clienteEmail } = detail
+  const { cot, items, termsByItem, clienteEmail, otExistente } = detail
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
 
   return (
@@ -190,6 +196,14 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
             validaHasta={fecha(cot.valida_hasta)}
             asunto={cot.asunto}
           />
+          {cot.estado === 'aprobada' && otExistente && (
+            <Link
+              href={`/ot/${otExistente.id}`}
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-green-400 hover:text-green-300 transition-colors"
+            >
+              OT: {otExistente.numero} →
+            </Link>
+          )}
         </div>
       </div>
 

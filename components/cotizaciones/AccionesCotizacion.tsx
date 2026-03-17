@@ -70,9 +70,9 @@ export default function AccionesCotizacion({
       const result = await cambiarEstadoCotizacion(id, nuevoEstado)
       if ('error' in result) {
         toast.error(result.error)
-      } else if (nuevoEstado === 'aprobada' && 'otId' in result && result.otId) {
-        toast.success('Cotización aprobada — OT creada')
-        router.push(`/ot/${result.otId}`)
+      } else if (nuevoEstado === 'aprobada') {
+        toast.success('Cotización aprobada')
+        router.refresh()
       } else {
         toast.success('Cotización rechazada')
         router.refresh()

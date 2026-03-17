@@ -6,6 +6,7 @@ import EstadoBadge from '@/components/shared/EstadoBadge'
 import NivelPrecioBadge from '@/components/shared/NivelPrecioBadge'
 import AccionesCotizacion from '@/components/cotizaciones/AccionesCotizacion'
 import DatosPagoCotizacion from '@/components/cotizaciones/DatosPagoCotizacion'
+import GenerarOTBtn from '@/components/cotizaciones/GenerarOTBtn'
 
 function clp(n: number) {
   return new Intl.NumberFormat('es-CL', {
@@ -67,6 +68,11 @@ export default async function CotizacionDetallePage({
 
   if (cotError || !cot) notFound()
 
+  const [{ data: maquinas }, { data: otExistente }] = await Promise.all([
+    supabase.from('maquinas').select('id, nombre').eq('activo', true).order('nombre'),
+    supabase.from('ordenes_trabajo').select('id, numero').eq('cotizacion_id', id).maybeSingle(),
+  ])
+
   const { data: items } = await supabase
     .from('cotizacion_items')
     .select(`
@@ -125,17 +131,26 @@ export default async function CotizacionDetallePage({
           <span className="text-[var(--text-faint)]">/</span>
           <span className="text-[14px] font-medium text-[var(--text-primary)]">{cot.numero}</span>
         </div>
-        <AccionesCotizacion
-          id={id}
-          numero={cot.numero}
-          estado={cot.estado}
-          clienteNombre={clienteRaw?.nombre ?? ''}
-          clienteEmail={clienteEmail}
-          contactos={contactos}
-          total={clp(cot.total)}
-          validaHasta={fecha(cot.valida_hasta)}
-          asunto={cot.asunto}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <AccionesCotizacion
+            id={id}
+            numero={cot.numero}
+            estado={cot.estado}
+            clienteNombre={clienteRaw?.nombre ?? ''}
+            clienteEmail={clienteEmail}
+            contactos={contactos}
+            total={clp(cot.total)}
+            validaHasta={fecha(cot.valida_hasta)}
+            asunto={cot.asunto}
+          />
+          {cot.estado === 'aprobada' && (
+            <GenerarOTBtn
+              cotizacionId={id}
+              maquinas={maquinas ?? []}
+              otExistente={otExistente ?? null}
+            />
+          )}
+        </div>
       </div>
 
       {/* Header de la cotización */}
