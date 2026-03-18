@@ -132,15 +132,27 @@ async function fetchDetail(id: string) {
   const { data: items } = await supabase
     .from('cotizacion_items')
     .select(`
-      id, titulo_item, descripcion, notas_item, ancho, alto, cantidad,
-      precio_unitario, subtotal, orden,
-      productos ( nombre, unidad )
+      id, producto_id, titulo_item, descripcion, notas_item, ancho, alto, cantidad,
+      precio_unitario, subtotal, orden
     `)
     .eq('cotizacion_id', id)
     .order('orden')
 
   const itemIds = (items ?? []).map((i) => i.id)
   const termsByItem: Record<string, { nombre: string; precio: number; cantidad: number }[]> = {}
+
+  // Fetch product names separately (avoid join permission issues)
+  const productIds = [...new Set((items ?? []).map((i) => (i as typeof i & { producto_id?: string | null }).producto_id).filter(Boolean) as string[])]
+  const productoMap: Record<string, { nombre: string; unidad: string }> = {}
+  if (productIds.length > 0) {
+    const { data: prods } = await supabase
+      .from('productos')
+      .select('id, nombre, unidad')
+      .in('id', productIds)
+    for (const p of prods ?? []) {
+      productoMap[p.id] = { nombre: p.nombre, unidad: p.unidad }
+    }
+  }
 
   if (itemIds.length > 0) {
     const { data: terms } = await supabase
@@ -171,7 +183,7 @@ async function fetchDetail(id: string) {
     supabase.from('maquinas').select('id, nombre').eq('activo', true).order('nombre'),
   ])
 
-  return { cot, items: items ?? [], termsByItem, clienteEmail, otExistente: otExistente ?? null, maquinas: maquinas ?? [] }
+  return { cot, items: items ?? [], termsByItem, productoMap, clienteEmail, otExistente: otExistente ?? null, maquinas: maquinas ?? [] }
 }
 
 // ── Detail UI ─────────────────────────────────────────────────────────────────
@@ -179,7 +191,7 @@ async function fetchDetail(id: string) {
 type DetailData = NonNullable<Awaited<ReturnType<typeof fetchDetail>>>
 
 function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
-  const { cot, items, termsByItem, clienteEmail, otExistente, maquinas } = detail
+  const { cot, items, termsByItem, productoMap, clienteEmail, otExistente, maquinas } = detail
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
 
   return (
@@ -318,36 +330,31 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
             </thead>
             <tbody>
               {items.map((item) => {
-                const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
+                const itemAny = item as typeof item & { producto_id?: string | null; titulo_item?: string | null; notas_item?: string | null }
+                const prod = itemAny.producto_id ? productoMap[itemAny.producto_id] ?? null : null
                 const isM2 = prod?.unidad === 'm2' && item.ancho != null && item.alto != null
                 const isMl = prod?.unidad === 'ml' && item.ancho != null
                 const dims = isM2
                   ? `${item.ancho!.toFixed(2)} × ${item.alto!.toFixed(2)} m²`
                   : isMl ? `${item.ancho!.toFixed(2)} ml` : '—'
                 const terms = termsByItem[item.id] ?? []
+                const titulo = prod?.nombre ?? itemAny.titulo_item ?? item.descripcion ?? 'Ítem'
+                const subtitulo = prod?.nombre
+                  ? (item.descripcion && item.descripcion !== prod.nombre ? item.descripcion : null)
+                  : itemAny.titulo_item
+                  ? (item.descripcion ?? null)
+                  : itemAny.notas_item ?? null
 
                 return (
                   <React.Fragment key={item.id}>
                     <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
                       <td className="px-4 py-3">
-                        {(() => {
-                          const itemAny = item as typeof item & { titulo_item?: string | null; notas_item?: string | null }
-                          const titulo = prod?.nombre ?? itemAny.titulo_item ?? item.descripcion ?? 'Ítem'
-                          // Subtítulo: descripcion solo si no es el título
-                          const subtitulo = prod?.nombre
-                            ? (item.descripcion && item.descripcion !== prod.nombre ? item.descripcion : null)
-                            : itemAny.titulo_item
-                            ? (item.descripcion ?? null)
-                            : itemAny.notas_item ?? null
-                          return (
-                            <>
-                              <p className="text-[13px] font-medium text-[var(--text-primary)]">{titulo}</p>
-                              {subtitulo && (
-                                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{subtitulo}</p>
-                              )}
-                            </>
-                          )
-                        })()}
+                        <>
+                          <p className="text-[13px] font-medium text-[var(--text-primary)]">{titulo}</p>
+                          {subtitulo && (
+                            <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{subtitulo}</p>
+                          )}
+                        </>
                       </td>
                       <td className="px-3 py-3 text-[13px] text-[var(--text-secondary)] whitespace-nowrap">{dims}</td>
                       <td className="px-3 py-3 text-right text-[13px] text-[var(--text-primary)] tabular-nums">{item.cantidad}</td>
