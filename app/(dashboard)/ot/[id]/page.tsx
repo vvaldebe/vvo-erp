@@ -32,10 +32,10 @@ export default async function OTDetallePage({
       .from('ordenes_trabajo')
       .select(`
         id, numero, estado, fecha_entrega, notas_produccion, notas_internas, archivo_diseno,
-        subtotal, total, created_at,
+        subtotal, total, created_at, updated_at,
         maquina_id,
         clientes ( id, nombre, email, telefono ),
-        cotizaciones ( id, numero, nivel_precio )
+        cotizaciones ( id, numero, nivel_precio, updated_at )
       `)
       .eq('id', id)
       .single(),
@@ -116,8 +116,35 @@ export default async function OTDetallePage({
   // Máquina actual
   const maquinaActual = (maquinas ?? []).find((m) => m.id === ot.maquina_id)
 
+  // Detectar si la cotización fue modificada después de crear la OT
+  const cotActualizadaRaw = (cotizacionRaw as typeof cotizacionRaw & { updated_at?: string | null })?.updated_at
+  const cotModificada = cotActualizadaRaw && ot.created_at
+    ? new Date(cotActualizadaRaw) > new Date(ot.created_at)
+    : false
+
   return (
     <div className="max-w-5xl space-y-6">
+
+      {/* Banner: cotización modificada */}
+      {cotModificada && cotizacionRaw && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-[8px]">
+          <svg className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-amber-400">Cotización modificada</p>
+            <p className="text-[12px] text-amber-400/70 mt-0.5">
+              La cotización origen fue editada después de crear esta OT. Revisa los ítems — pueden haber cambiado.
+            </p>
+          </div>
+          <Link
+            href={`/cotizaciones/${cotizacionRaw.id}`}
+            className="text-[12px] font-medium text-amber-400 hover:text-amber-300 transition-colors shrink-0"
+          >
+            Ver cotización →
+          </Link>
+        </div>
+      )}
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">

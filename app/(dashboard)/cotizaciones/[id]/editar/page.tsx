@@ -24,7 +24,7 @@ export default async function EditarCotizacionPage({
     .single()
 
   if (error || !cot) notFound()
-  if (cot.estado !== 'borrador') redirect(`/cotizaciones/${id}`)
+  if (cot.estado !== 'borrador' && cot.estado !== 'enviada') redirect(`/cotizaciones/${id}`)
 
   // Ítems con terminaciones
   const { data: itemsData } = await supabase

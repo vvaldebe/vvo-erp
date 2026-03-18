@@ -103,7 +103,7 @@ export default function AccionesCotizacion({
     <>
       <div className="flex flex-wrap gap-2">
         {/* Editar */}
-        {estadoStr === 'borrador' && (
+        {(estadoStr === 'borrador' || estadoStr === 'enviada') && (
           <button
             onClick={handleEditar}
             className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-muted)] transition-colors"

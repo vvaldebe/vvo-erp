@@ -257,8 +257,23 @@ export async function actualizarCotizacion(
     }
   }
 
+  // Si hay una OT vinculada, tocar su updated_at para que el banner de "cotización modificada" aparezca
+  const { data: otVinculada } = await supabase
+    .from('ordenes_trabajo')
+    .select('id')
+    .eq('cotizacion_id', id)
+    .maybeSingle()
+
+  if (otVinculada) {
+    await supabase
+      .from('ordenes_trabajo')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', otVinculada.id)
+  }
+
   revalidatePath('/cotizaciones')
   revalidatePath(`/cotizaciones/${id}`)
+  if (otVinculada) revalidatePath(`/ot/${otVinculada.id}`)
   redirect(`/cotizaciones/${id}`)
 }
 
