@@ -113,7 +113,9 @@ export interface CotizacionItem {
   id: string
   cotizacion_id: string
   producto_id?: string
+  titulo_item?: string | null   // added via migration 006 — null for catalog & Zoho legacy items
   descripcion?: string
+  notas_item?: string | null
   ancho?: number
   alto?: number
   cantidad: number

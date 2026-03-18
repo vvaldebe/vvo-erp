@@ -142,12 +142,18 @@ export default async function OTDetallePage({
             </div>
             <div className="flex flex-col sm:items-end gap-2">
               <EstadoBadge estado={ot.estado as 'pendiente' | 'en_produccion' | 'terminado' | 'entregado'} />
-              {ot.fecha_entrega && (
-                <p className="text-[12px] text-[var(--text-secondary)]">Entrega: <span className="font-medium text-[var(--text-primary)]">{fecha(ot.fecha_entrega)}</span></p>
-              )}
-              {maquinaActual && (
-                <p className="text-[12px] text-[var(--text-secondary)]">Máquina: <span className="font-medium text-[var(--text-primary)]">{maquinaActual.nombre}</span></p>
-              )}
+              <p className="text-[12px] text-[var(--text-secondary)]">
+                Entrega:{' '}
+                <span className={`font-medium ${ot.fecha_entrega ? 'text-[var(--text-primary)]' : 'text-[var(--text-faint)] italic'}`}>
+                  {ot.fecha_entrega ? fecha(ot.fecha_entrega) : 'Sin fecha'}
+                </span>
+              </p>
+              <p className="text-[12px] text-[var(--text-secondary)]">
+                Máquina:{' '}
+                <span className={`font-medium ${maquinaActual ? 'text-[var(--text-primary)]' : 'text-[var(--text-faint)] italic'}`}>
+                  {maquinaActual ? maquinaActual.nombre : 'Sin asignar'}
+                </span>
+              </p>
             </div>
           </div>
 

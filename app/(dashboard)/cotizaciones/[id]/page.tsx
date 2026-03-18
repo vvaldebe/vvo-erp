@@ -241,6 +241,8 @@ export default async function CotizacionDetallePage({
           </thead>
           <tbody>
             {(items ?? []).map((item) => {
+              // Cast to include titulo_item which was added via ALTER TABLE after types were generated
+              const itemAny = item as typeof item & { titulo_item?: string | null }
               const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
               const isM2 = prod?.unidad === 'm2' && item.ancho != null && item.alto != null
               const isMl = prod?.unidad === 'ml' && item.ancho != null
@@ -257,10 +259,10 @@ export default async function CotizacionDetallePage({
                     <td className="px-5 py-3.5">
                       {/* Title: catalog → product name | free → titulo_item | Zoho legacy → descripcion */}
                       <p className="text-[14px] font-medium text-[var(--text-primary)]">
-                        {prod?.nombre ?? item.titulo_item ?? item.descripcion ?? 'Ítem'}
+                        {prod?.nombre ?? itemAny.titulo_item ?? item.descripcion ?? 'Ítem'}
                       </p>
                       {/* Subtitle: descripcion (for all items that have it, when not used as title) */}
-                      {!prod?.nombre && item.titulo_item && item.descripcion && (
+                      {!prod?.nombre && itemAny.titulo_item && item.descripcion && (
                         <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
                       )}
                       {prod?.nombre && item.descripcion && (

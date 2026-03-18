@@ -93,18 +93,7 @@ export default function AccionesOT({
   const INPUT = 'w-full px-3 py-2 text-sm border border-[var(--border-default)] rounded-[6px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/10 focus:border-[#7c3aed] transition-colors bg-[var(--bg-card)]'
 
   return (
-    <div className="space-y-6">
-
-      {/* Avanzar estado */}
-      {flujo.next && (
-        <button
-          onClick={handleAvanzarEstado}
-          disabled={isPending}
-          className={`w-full py-2.5 rounded-[6px] text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${flujo.style}`}
-        >
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : flujo.label}
-        </button>
-      )}
+    <div className="space-y-4">
 
       {/* Campos operativos */}
       <div className="space-y-4">
@@ -171,6 +160,21 @@ export default function AccionesOT({
           }
         </button>
       </div>
+
+      {/* Avanzar estado — al final del panel */}
+      {flujo.next && (
+        <>
+          <div className="border-t border-[var(--border-default)] pt-4">
+            <button
+              onClick={handleAvanzarEstado}
+              disabled={isPending}
+              className={`w-full py-2.5 rounded-[6px] text-sm font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 ${flujo.style}`}
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : flujo.label}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
