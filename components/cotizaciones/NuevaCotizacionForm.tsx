@@ -840,8 +840,9 @@ function ItemRow({
   initialDescripcion,
 }: ItemRowProps) {
   const hasInitialProduct = initialProducto != null
-  // Free items: show titulo_item in search field; fallback to descripcion for Zoho legacy items (no titulo_item)
-  const [productoQuery,    setProductoQuery]    = useState(hasInitialProduct ? '' : (initialTituloItem ?? initialDescripcion ?? ''))
+  // productoQuery drives the dropdown filter — read directly from RHF so it's always in sync with what gets saved
+  const productoQuery = (watch(`items.${index}.titulo_item`) as string) ?? ''
+  const setProductoQuery = (val: string) => setValue(`items.${index}.titulo_item`, val || null)
   const [productoDropdown, setProductoDropdown] = useState(false)
   const [productoSel,      setProductoSel]      = useState<ProductoOption | null>(initialProducto ?? null)
   const [mostrarTerms,     setMostrarTerms]      = useState(false)
@@ -886,7 +887,7 @@ function ItemRow({
 
   function seleccionarProducto(p: ProductoOption) {
     setProductoSel(p)
-    setProductoQuery('')
+    setValue(`items.${index}.titulo_item`, null)
     setProductoDropdown(false)
     const modoMinutos = detectarModoMinutos(p.nombre)
     setEsMinutos(modoMinutos)
@@ -972,16 +973,13 @@ function ItemRow({
               </div>
             ) : (
               <div className="relative">
-                {/* Hidden input ensures titulo_item is properly registered with RHF on submit */}
-                <input type="hidden" {...register(`items.${index}.titulo_item`)} />
                 <input
                   type="text"
                   placeholder="Título del ítem (ej: Señalética tienda)"
-                  value={productoQuery}
+                  {...register(`items.${index}.titulo_item`)}
                   onChange={(e) => {
-                    setProductoQuery(e.target.value)
+                    setValue(`items.${index}.titulo_item`, e.target.value || null)
                     setProductoDropdown(true)
-                    setValue(`items.${index}.titulo_item`, e.target.value)
                   }}
                   onFocus={() => setProductoDropdown(true)}
                   onBlur={() => setTimeout(() => setProductoDropdown(false), 150)}
