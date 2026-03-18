@@ -967,7 +967,12 @@ function ItemRow({
                   type="text"
                   placeholder="Buscar producto del catálogo..."
                   value={productoQuery}
-                  onChange={(e) => { setProductoQuery(e.target.value); setProductoDropdown(true) }}
+                  onChange={(e) => {
+                    setProductoQuery(e.target.value)
+                    setProductoDropdown(true)
+                    // Sync title to descripcion field (free items use this as their title in DB)
+                    setValue(`items.${index}.descripcion`, e.target.value)
+                  }}
                   onFocus={() => setProductoDropdown(true)}
                   onBlur={() => setTimeout(() => setProductoDropdown(false), 150)}
                   className={`${INPUT_BASE} w-full`}
@@ -990,10 +995,15 @@ function ItemRow({
               </div>
             )}
             {/* Descripción libre — siempre visible (Bug 2 & 4) */}
+            {/* Free item: search field = title (→ descripcion), this field = additional notes (→ notas_item) */}
+            {/* Catalog item: this field = additional description (→ descripcion) */}
             <input
               type="text"
-              placeholder={productoSel ? 'Descripción adicional (opcional)' : 'Descripción del ítem'}
-              {...register(`items.${index}.descripcion`)}
+              placeholder="Descripción adicional (opcional)"
+              {...(productoSel
+                ? register(`items.${index}.descripcion`)
+                : register(`items.${index}.notas_item`)
+              )}
               className={`${INPUT_BASE} w-full mt-1`}
             />
             {/* Bug 1: Selector de tipo de unidad — visible solo cuando no hay producto seleccionado del catálogo */}
