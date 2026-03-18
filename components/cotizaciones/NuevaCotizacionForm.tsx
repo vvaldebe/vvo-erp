@@ -994,18 +994,15 @@ function ItemRow({
                 )}
               </div>
             )}
-            {/* Descripción libre — siempre visible (Bug 2 & 4) */}
-            {/* Free item: search field = title (→ descripcion), this field = additional notes (→ notas_item) */}
-            {/* Catalog item: this field = additional description (→ descripcion) */}
-            <input
-              type="text"
-              placeholder="Descripción adicional (opcional)"
-              {...(productoSel
-                ? register(`items.${index}.descripcion`)
-                : register(`items.${index}.notas_item`)
-              )}
-              className={`${INPUT_BASE} w-full mt-1`}
-            />
+            {/* Additional description — only shown for catalog items (free items use search field as title + nota toggle for notes) */}
+            {productoSel && (
+              <input
+                type="text"
+                placeholder="Descripción adicional (opcional)"
+                {...register(`items.${index}.descripcion`)}
+                className={`${INPUT_BASE} w-full mt-1`}
+              />
+            )}
             {/* Bug 1: Selector de tipo de unidad — visible solo cuando no hay producto seleccionado del catálogo */}
             {!productoSel && !esMinutos && (
               <div className="flex items-center gap-1 mt-1.5">
