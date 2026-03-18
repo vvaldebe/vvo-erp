@@ -8,6 +8,7 @@ import ConfiguracionEmpresaForm from '@/components/admin/ConfiguracionEmpresaFor
 import ConfiguracionBancoForm from '@/components/admin/ConfiguracionBancoForm'
 import ConfiguracionPagosForm from '@/components/admin/ConfiguracionPagosForm'
 import ConfiguracionUsuariosPanel from '@/components/admin/ConfiguracionUsuariosPanel'
+import ConfiguracionNumeracionForm from '@/components/admin/ConfiguracionNumeracionForm'
 
 // ── Claves que maneja esta página ───────────────────────────────────────────
 
@@ -24,6 +25,8 @@ const CLAVES_BANCO = [
 const CLAVES_COSTOS = ['costo_tinta_m2', 'overhead_m2'] as const
 
 const CLAVES_PAGOS = ['condiciones_pago'] as const
+
+const CLAVES_NUMERACION = ['prefijo_cotizacion', 'prefijo_factura', 'numero_inicial_facturas'] as const
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -83,6 +86,12 @@ async function guardarCondicionesPago(formData: FormData) {
   ])
 }
 
+async function guardarNumeracion(formData: FormData) {
+  'use server'
+  const supabase = await createClient()
+  await upsertClaves(supabase, CLAVES_NUMERACION.map((k) => [k, String(formData.get(k) ?? '')]))
+}
+
 async function invitarUsuario(formData: FormData): Promise<{ error?: string; success?: boolean }> {
   'use server'
   const email = String(formData.get('email') ?? '').trim()
@@ -120,11 +129,11 @@ export default async function AdminConfiguracionPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Fetch de todas las claves de configuración relevantes
-  const allClaves = [...CLAVES_EMPRESA, ...CLAVES_BANCO, ...CLAVES_COSTOS, ...CLAVES_PAGOS]
-  const { data: configRows = [] } = await supabase
-    .from('configuracion')
-    .select('clave, valor')
-    .in('clave', allClaves)
+  const allClaves = [...CLAVES_EMPRESA, ...CLAVES_BANCO, ...CLAVES_COSTOS, ...CLAVES_PAGOS, ...CLAVES_NUMERACION]
+  const [{ data: configRows = [] }, { count: facturaCount }] = await Promise.all([
+    supabase.from('configuracion').select('clave, valor').in('clave', allClaves),
+    supabase.from('facturas').select('*', { count: 'exact', head: true }),
+  ])
 
   const rows = configRows ?? []
 
@@ -151,6 +160,10 @@ export default async function AdminConfiguracionPage() {
   const costoTintaGlobal = Number(val(rows, 'costo_tinta_m2', '2500'))
   const overheadGlobal   = Number(val(rows, 'overhead_m2',    '1800'))
   const condicionesPago  = val(rows, 'condiciones_pago', 'Pago al contado vía transferencia bancaria. Factura emitida una vez confirmado el pago.')
+
+  const prefijoCotizacion     = val(rows, 'prefijo_cotizacion',      'COT-')
+  const prefijoFactura        = val(rows, 'prefijo_factura',         'F-')
+  const numeroInicialFacturas = val(rows, 'numero_inicial_facturas', '1')
 
   // Usuarios (via service role)
   let usuarios: { id: string; email: string | null; created_at: string; last_sign_in_at: string | null }[] = []
@@ -239,7 +252,24 @@ export default async function AdminConfiguracionPage() {
         />
       </section>
 
-      {/* ── E) Seguridad y usuarios ── */}
+      {/* ── E) Numeración de documentos ── */}
+      <section className={sectionClass}>
+        <div>
+          <h2 className={sectionHeaderClass}>Numeración de documentos</h2>
+          <p className={sectionDescClass}>
+            Prefijos y número inicial para cotizaciones y facturas.
+          </p>
+        </div>
+        <ConfiguracionNumeracionForm
+          prefijoCotizacion={prefijoCotizacion}
+          prefijoFactura={prefijoFactura}
+          numeroInicialFacturas={numeroInicialFacturas}
+          facturaCount={facturaCount ?? 0}
+          action={guardarNumeracion}
+        />
+      </section>
+
+      {/* ── F) Seguridad y usuarios ── */}
       <section className={sectionClass}>
         <div>
           <h2 className={sectionHeaderClass}>Seguridad y usuarios</h2>

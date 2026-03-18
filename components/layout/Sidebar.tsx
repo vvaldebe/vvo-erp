@@ -18,6 +18,7 @@ import {
   LogOut,
   Timer,
   X,
+  LayoutTemplate,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/app/actions/auth'
@@ -37,6 +38,7 @@ const adminItems = [
   { href: '/admin/maquinas',          label: 'Máquinas',          icon: Printer },
   { href: '/admin/materiales',        label: 'Materiales',        icon: Package2 },
   { href: '/admin/servicios-maquina', label: 'Servicios máquina', icon: Timer },
+  { href: '/admin/plantillas',        label: 'Plantillas',        icon: LayoutTemplate },
   { href: '/admin/configuracion',     label: 'Configuración',     icon: SlidersHorizontal },
 ]
 
@@ -124,7 +126,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
 
         {/* Sección Admin */}
         <div className="pt-5">
-          <p className="px-2.5 pb-1.5 text-[10px] font-semibold text-[#71717a] uppercase tracking-[0.1em]">
+          <p className="px-2.5 pb-1.5 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em]">
             Administración
           </p>
           <div className="space-y-px">
@@ -151,7 +153,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
           </div>
           <div className="flex-1 min-w-0 text-left">
             <p className="text-[12px] font-medium text-[var(--text-muted)] truncate leading-none">{displayName}</p>
-            <p className="text-[10px] text-[#71717a] truncate mt-0.5 leading-none">{userEmail}</p>
+            <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5 leading-none">{userEmail}</p>
           </div>
           <LogOut className="w-3.5 h-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>

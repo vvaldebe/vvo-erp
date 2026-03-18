@@ -34,7 +34,7 @@ export default async function ClienteDetailPage({ params }: Props) {
     supabase.from('contactos').select('*').eq('cliente_id', id).order('es_principal', { ascending: false }).order('created_at'),
     supabase.from('cotizaciones').select('id, numero, estado, total, created_at').eq('cliente_id', id).order('created_at', { ascending: false }),
     supabase.from('ordenes_trabajo').select('id, numero, estado, total, fecha_entrega').eq('cliente_id', id).order('created_at', { ascending: false }),
-    supabase.from('facturas').select('id, numero_sii, estado, total, fecha_emision').eq('cliente_id', id).order('fecha_emision', { ascending: false }),
+    supabase.from('facturas').select('id, numero_sii, estado, total, fecha_emision, fecha_vencimiento').eq('cliente_id', id).order('fecha_emision', { ascending: false }),
   ])
 
   if (clienteResult.error || !clienteResult.data) {
@@ -78,7 +78,15 @@ export default async function ClienteDetailPage({ params }: Props) {
 
   const cotizaciones = (cotizacionesResult.data ?? []) as Pick<Cotizacion, 'id' | 'numero' | 'estado' | 'total' | 'created_at'>[]
   const ots          = (otsResult.data ?? []) as Pick<OrdenTrabajo, 'id' | 'numero' | 'estado' | 'total' | 'fecha_entrega'>[]
-  const facturas     = (facturasResult.data ?? []) as Pick<Factura, 'id' | 'numero_sii' | 'estado' | 'total' | 'fecha_emision'>[]
+  const facturas     = (facturasResult.data ?? []) as (Pick<Factura, 'id' | 'numero_sii' | 'estado' | 'total' | 'fecha_emision'> & { fecha_vencimiento?: string | null })[]
+
+  // Estado de cuenta
+  const totalAdeudado = facturas
+    .filter((f) => f.estado === 'pendiente' || f.estado === 'vencida')
+    .reduce((acc, f) => acc + (f.total ?? 0), 0)
+  const cotizacionesPendientes = cotizaciones.filter((c) => c.estado === 'enviada' || c.estado === 'borrador')
+  const otsActivas = ots.filter((o) => o.estado === 'pendiente' || o.estado === 'en_produccion')
+  const facturasPendientes = facturas.filter((f) => f.estado === 'pendiente' || f.estado === 'vencida')
 
   const displayName = cliente.razon_social ?? cliente.nombre
   const showFantasia = cliente.nombre_fantasia && cliente.nombre_fantasia !== cliente.razon_social
@@ -231,6 +239,10 @@ export default async function ClienteDetailPage({ params }: Props) {
           cotizaciones={cotizaciones}
           ots={ots}
           facturas={facturas}
+          totalAdeudado={totalAdeudado}
+          cotizacionesPendientes={cotizacionesPendientes}
+          otsActivas={otsActivas}
+          facturasPendientes={facturasPendientes}
         />
       </div>
     </div>

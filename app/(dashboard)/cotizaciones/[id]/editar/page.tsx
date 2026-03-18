@@ -100,6 +100,15 @@ export default async function EditarCotizacionPage({
 
   const initialItems = (itemsData ?? []).map((item) => {
     const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
+    // Derive unidad: prefer product's unidad; for free-text items infer from dimensions
+    const prodUnidad = prod ? (prod.unidad as UnidadMedida) : null
+    let derivedUnidad: UnidadMedida = prodUnidad ?? 'm2'
+    if (!prodUnidad) {
+      // Heuristic: if alto is null/0 and ancho is set → ml; if both null/0 → unidad
+      if (item.ancho == null && item.alto == null) derivedUnidad = 'unidad'
+      else if (item.alto == null) derivedUnidad = 'ml'
+      else derivedUnidad = 'm2'
+    }
     return {
       producto_id:     item.producto_id ?? null,
       descripcion:     item.descripcion ?? null,
@@ -110,6 +119,7 @@ export default async function EditarCotizacionPage({
       subtotal:        item.subtotal,
       orden:           item.orden,
       notas_item:      item.notas_item ?? null,
+      unidad:          derivedUnidad,
       terminaciones:   termsByItem[item.id] ?? [],
       _producto: prod ? {
         id:             prod.id,

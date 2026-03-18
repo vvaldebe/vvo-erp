@@ -7,36 +7,37 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import ForgotPasswordForm from './ForgotPasswordForm'
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(signIn, null)
 
   return (
-    <div className="min-h-screen bg-[#18181b] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg-sidebar)] flex items-center justify-center p-4">
       <div className="w-full max-w-[340px]">
 
         {/* Logo */}
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-10 mt-6">
           <Image
             src="/logo-vvo.png"
             alt="VVO Publicidad"
-            width={140}
-            height={44}
-            className="object-contain h-10 w-auto"
+            width={200}
+            height={63}
+            className="object-contain h-auto w-auto"
             priority
           />
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-[10px] p-7 border border-[#e4e4e7]">
-          <h1 className="text-[15px] font-semibold text-[#09090b] mb-0.5">Iniciar sesión</h1>
-          <p className="text-[13px] text-[#71717a] mb-6">
+        <div className="bg-[var(--bg-card)] rounded-[10px] p-7 border border-[var(--border-default)]">
+          <h1 className="text-[15px] font-semibold text-[var(--text-primary)] mb-0.5">Iniciar sesión</h1>
+          <p className="text-[13px] text-[var(--text-muted)] mb-6">
             Ingresa al sistema de gestión VVO
           </p>
 
           <form action={formAction} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-[12px] font-medium text-[#374151]">
+              <Label htmlFor="email" className="text-[12px] font-medium text-[var(--text-secondary)]">
                 Email
               </Label>
               <Input
@@ -46,12 +47,12 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 placeholder="usuario@vvo.cl"
-                className="h-8 text-[13px] border-[#e4e4e7] bg-white text-[#09090b] placeholder:text-[#a1a1aa] focus-visible:ring-[#7c3aed]/10 focus-visible:border-[#7c3aed] rounded-[6px]"
+                className="h-8 text-[13px] border-[var(--border-input)] bg-[var(--bg-input)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus-visible:ring-[#7c3aed]/10 focus-visible:border-[#7c3aed] rounded-[6px]"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-[12px] font-medium text-[#374151]">
+              <Label htmlFor="password" className="text-[12px] font-medium text-[var(--text-secondary)]">
                 Contraseña
               </Label>
               <Input
@@ -61,7 +62,7 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="h-8 text-[13px] border-[#e4e4e7] bg-white text-[#09090b] placeholder:text-[#a1a1aa] focus-visible:ring-[#7c3aed]/10 focus-visible:border-[#7c3aed] rounded-[6px]"
+                className="h-8 text-[13px] border-[var(--border-input)] bg-[var(--bg-input)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus-visible:ring-[#7c3aed]/10 focus-visible:border-[#7c3aed] rounded-[6px]"
               />
             </div>
 
@@ -87,9 +88,11 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+
+          <ForgotPasswordForm />
         </div>
 
-        <p className="text-center text-[#52525b] text-[11px] mt-6">
+        <p className="text-center text-[var(--text-secondary)] text-[11px] mt-6">
           VVO Publicidad — Quilpué, Chile
         </p>
       </div>

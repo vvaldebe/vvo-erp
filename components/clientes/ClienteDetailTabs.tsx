@@ -9,12 +9,16 @@ type OTRow         = Pick<OrdenTrabajo, 'id' | 'numero' | 'estado' | 'total' | '
 type FacturaRow    = Pick<Factura, 'id' | 'numero_sii' | 'estado' | 'total' | 'fecha_emision'>
 
 interface Props {
-  cotizaciones: CotizacionRow[]
-  ots:          OTRow[]
-  facturas:     FacturaRow[]
+  cotizaciones:          CotizacionRow[]
+  ots:                   OTRow[]
+  facturas:              FacturaRow[]
+  totalAdeudado:         number
+  cotizacionesPendientes: CotizacionRow[]
+  otsActivas:            OTRow[]
+  facturasPendientes:    FacturaRow[]
 }
 
-type Tab = 'cotizaciones' | 'ots' | 'facturas'
+type Tab = 'cotizaciones' | 'ots' | 'facturas' | 'estado_cuenta'
 
 function formatDate(dateStr?: string | null) {
   if (!dateStr) return '—'
@@ -68,13 +72,22 @@ function EmptyState({ message }: { message: string }) {
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props) {
+export default function ClienteDetailTabs({
+  cotizaciones,
+  ots,
+  facturas,
+  totalAdeudado,
+  cotizacionesPendientes,
+  otsActivas,
+  facturasPendientes,
+}: Props) {
   const [tab, setTab] = useState<Tab>('cotizaciones')
 
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'cotizaciones', label: 'Cotizaciones', count: cotizaciones.length },
-    { key: 'ots',          label: 'OTs',          count: ots.length },
-    { key: 'facturas',     label: 'Facturas',     count: facturas.length },
+    { key: 'cotizaciones',  label: 'Cotizaciones',   count: cotizaciones.length },
+    { key: 'ots',           label: 'OTs',            count: ots.length },
+    { key: 'facturas',      label: 'Facturas',       count: facturas.length },
+    { key: 'estado_cuenta', label: 'Estado de cuenta', count: facturasPendientes.length },
   ]
 
   return (
@@ -234,6 +247,99 @@ export default function ClienteDetailTabs({ cotizaciones, ots, facturas }: Props
             </table>
             </div>
           )
+        )}
+
+        {/* Estado de cuenta */}
+        {tab === 'estado_cuenta' && (
+          <div className="p-5 space-y-6">
+            {/* Total adeudado */}
+            <div className="border border-[var(--border-default)] rounded-[8px] p-5 bg-[var(--bg-card)]">
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em] mb-1">
+                Total adeudado
+              </p>
+              <p className={[
+                'text-[32px] font-black tabular-nums leading-tight',
+                totalAdeudado > 0 ? 'text-red-400' : 'text-green-500',
+              ].join(' ')}>
+                {formatCLP(totalAdeudado)}
+              </p>
+              {totalAdeudado === 0 && (
+                <p className="text-[12px] text-[var(--text-muted)] mt-1">Sin deuda pendiente</p>
+              )}
+            </div>
+
+            {/* Cotizaciones pendientes */}
+            <div>
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em] mb-2">
+                Cotizaciones sin respuesta ({cotizacionesPendientes.length})
+              </p>
+              {cotizacionesPendientes.length === 0 ? (
+                <p className="text-[13px] text-[var(--text-muted)]">Ninguna</p>
+              ) : (
+                <div className="space-y-1">
+                  {cotizacionesPendientes.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between border border-[var(--border-subtle)] rounded-[6px] px-3 py-2 bg-[var(--bg-card)]">
+                      <div className="flex items-center gap-2">
+                        <EstadoBadge {...COTIZACION_ESTADO[c.estado]} />
+                        <Link href={`/cotizaciones?id=${c.id}`} className="text-[13px] font-medium text-[#7c3aed] hover:underline">
+                          {c.numero}
+                        </Link>
+                      </div>
+                      <span className="text-[12px] font-mono text-[var(--text-secondary)]">{formatCLP(c.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* OTs activas */}
+            <div>
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em] mb-2">
+                OTs activas ({otsActivas.length})
+              </p>
+              {otsActivas.length === 0 ? (
+                <p className="text-[13px] text-[var(--text-muted)]">Ninguna</p>
+              ) : (
+                <div className="space-y-1">
+                  {otsActivas.map((o) => (
+                    <div key={o.id} className="flex items-center justify-between border border-[var(--border-subtle)] rounded-[6px] px-3 py-2 bg-[var(--bg-card)]">
+                      <div className="flex items-center gap-2">
+                        <EstadoBadge {...OT_ESTADO[o.estado]} />
+                        <Link href={`/ot/${o.id}`} className="text-[13px] font-medium text-[#7c3aed] hover:underline">
+                          {o.numero}
+                        </Link>
+                      </div>
+                      <span className="text-[12px] font-mono text-[var(--text-secondary)]">{formatCLP(o.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Facturas pendientes */}
+            <div>
+              <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em] mb-2">
+                Facturas pendientes ({facturasPendientes.length})
+              </p>
+              {facturasPendientes.length === 0 ? (
+                <p className="text-[13px] text-[var(--text-muted)]">Ninguna</p>
+              ) : (
+                <div className="space-y-1">
+                  {facturasPendientes.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between border border-[var(--border-subtle)] rounded-[6px] px-3 py-2 bg-[var(--bg-card)]">
+                      <div className="flex items-center gap-2">
+                        <EstadoBadge {...FACTURA_ESTADO[f.estado]} />
+                        <Link href={`/facturas/${f.id}`} className="text-[13px] font-medium text-[#7c3aed] hover:underline">
+                          {f.numero_sii ?? '—'}
+                        </Link>
+                      </div>
+                      <span className="text-[12px] font-mono text-[var(--text-secondary)]">{formatCLP(f.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

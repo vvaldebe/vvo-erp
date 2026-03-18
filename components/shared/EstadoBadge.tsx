@@ -8,7 +8,7 @@ type Estado = EstadoCotizacion | EstadoOT | EstadoFactura
 
 const CONFIG: Record<Estado, { label: string; style: string }> = {
   // Cotizaciones
-  borrador:       { label: 'Borrador',      style: 'bg-[#e4e4e7] text-[#3f3f46]' },
+  borrador:       { label: 'Borrador',      style: 'bg-[var(--border-default)] text-[var(--text-secondary)]' },
   enviada:        { label: 'Enviada',       style: 'bg-[#1d4ed8] text-white' },
   aprobada:       { label: 'Aprobada',      style: 'bg-[#15803d] text-white' },
   rechazada:      { label: 'Rechazada',     style: 'bg-[#dc2626] text-white' },
@@ -16,11 +16,11 @@ const CONFIG: Record<Estado, { label: string; style: string }> = {
   pendiente:      { label: 'Pendiente',     style: 'bg-[#d97706] text-white' },
   en_produccion:  { label: 'En producción', style: 'bg-[#7c3aed] text-white' },
   terminado:      { label: 'Terminado',     style: 'bg-[#15803d] text-white' },
-  entregado:      { label: 'Entregado',     style: 'bg-[#e4e4e7] text-[#3f3f46]' },
+  entregado:      { label: 'Entregado',     style: 'bg-[var(--border-default)] text-[var(--text-secondary)]' },
   // Factura
   pagada:         { label: 'Pagada',        style: 'bg-[#15803d] text-white' },
   vencida:        { label: 'Vencida',       style: 'bg-[#dc2626] text-white' },
-  anulada:        { label: 'Anulada',       style: 'bg-[#e4e4e7] text-[var(--text-secondary)]' },
+  anulada:        { label: 'Anulada',       style: 'bg-[var(--border-default)] text-[var(--text-secondary)]' },
 }
 
 interface EstadoBadgeProps {
@@ -29,7 +29,7 @@ interface EstadoBadgeProps {
 }
 
 export default function EstadoBadge({ estado, className }: EstadoBadgeProps) {
-  const cfg = CONFIG[estado] ?? { label: estado, style: 'bg-[#f4f4f5] text-[var(--text-secondary)]' }
+  const cfg = CONFIG[estado] ?? { label: estado, style: 'bg-[var(--border-subtle)] text-[var(--text-secondary)]' }
   return (
     <span
       className={cn(

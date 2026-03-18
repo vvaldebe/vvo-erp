@@ -1,13 +1,15 @@
 import React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Plus, Building2, Mail, Phone, MapPin, Hash, ArrowRight, ArrowLeft } from 'lucide-react'
+import { Plus, Building2, Mail, Phone, MapPin, Hash, ArrowRight, ArrowLeft, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import ListaPanel, { type CotizacionRow } from '@/components/cotizaciones/ListaPanel'
+import ListaPanelSkeleton from '@/components/cotizaciones/ListaPanelSkeleton'
 import EstadoBadge from '@/components/shared/EstadoBadge'
 import NivelPrecioBadge from '@/components/shared/NivelPrecioBadge'
 import AccionesCotizacion from '@/components/cotizaciones/AccionesCotizacion'
 import GenerarOTBtn from '@/components/cotizaciones/GenerarOTBtn'
+import NotasInternasEditor from '@/components/shared/NotasInternasEditor'
 import { Suspense } from 'react'
 
 function clp(n: number) {
@@ -33,6 +35,7 @@ export default async function CotizacionesPage({
     .from('cotizaciones')
     .select('id, numero, estado, total, created_at, clientes(nombre)')
     .order('created_at', { ascending: false })
+    .range(0, 49)
 
   type RawRow = NonNullable<typeof listData>[number]
   function getNombre(clientes: RawRow['clientes']): string {
@@ -50,6 +53,9 @@ export default async function CotizacionesPage({
     cliente_nombre: getNombre(row.clientes),
   }))
 
+  // If we got exactly 50, there may be more — show "Cargar más"
+  const hasMore = (listData ?? []).length === 50
+
   let detail: Awaited<ReturnType<typeof fetchDetail>> | null = null
   if (selectedId) {
     detail = await fetchDetail(selectedId)
@@ -61,12 +67,13 @@ export default async function CotizacionesPage({
 
       {/* Left panel — lista */}
       {/* Móvil: visible solo cuando NO hay detail seleccionado */}
-      {/* Desktop: siempre visible, 300px fijo */}
+      {/* Desktop: siempre visible, ancho transiciona de full a 320px */}
       <div className={[
         'shrink-0 flex flex-col h-full',
+        'md:transition-[width] md:duration-300 md:ease-in-out',
         selectedId
-          ? 'hidden md:flex md:w-[300px]'
-          : 'flex w-full md:w-[300px]',
+          ? 'hidden md:flex md:w-[400px]'
+          : 'flex w-full',
       ].join(' ')}>
         {/* Panel header */}
         <div className="flex items-center justify-between px-3 py-3 border-b border-r border-[var(--border-default)] bg-[var(--bg-card)]">
@@ -79,8 +86,8 @@ export default async function CotizacionesPage({
             Nueva
           </Link>
         </div>
-        <Suspense>
-          <ListaPanel cotizaciones={cotizaciones} />
+        <Suspense fallback={<ListaPanelSkeleton />}>
+          <ListaPanel cotizaciones={cotizaciones} hasMore={hasMore} />
         </Suspense>
       </div>
 
@@ -100,6 +107,7 @@ export default async function CotizacionesPage({
           <DetailContent detail={detail} id={selectedId} />
         ) : null}
       </div>
+
     </div>
   )
 }
@@ -113,7 +121,7 @@ async function fetchDetail(id: string) {
     .from('cotizaciones')
     .select(`
       id, numero, estado, nivel_precio, subtotal, iva, total,
-      notas, asunto, created_at, valida_hasta, enviada_at,
+      notas, notas_internas, asunto, created_at, valida_hasta, enviada_at,
       clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
     `)
     .eq('id', id)
@@ -177,14 +185,23 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-5">
 
-      {/* Back button — solo móvil */}
-      <Link
-        href="/cotizaciones"
-        className="md:hidden inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Cotizaciones
-      </Link>
+      {/* Nav row */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/cotizaciones"
+          className="md:hidden inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Cotizaciones
+        </Link>
+        <Link
+          href="/cotizaciones"
+          className="hidden md:flex items-center justify-center w-7 h-7 rounded-[5px] border border-[var(--border-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-muted)] transition-colors cursor-pointer ml-auto"
+          title="Cerrar"
+        >
+          <X className="w-3.5 h-3.5" />
+        </Link>
+      </div>
 
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -220,11 +237,28 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
             validaHasta={fecha(cot.valida_hasta)}
             asunto={cot.asunto}
           />
-          {cot.estado === 'aprobada' && (
+          {cot.estado === 'aprobada' && otExistente && (
+            <Link
+              href={`/ot/${otExistente.id}`}
+              className="flex items-center gap-2.5 border border-[var(--border-default)] rounded-[8px] px-3 py-2.5 bg-[var(--bg-muted)] hover:bg-[var(--bg-card)] transition-colors group"
+            >
+              <div className="flex items-center justify-center w-7 h-7 rounded-[5px] bg-green-600/20 border border-green-600/30 shrink-0">
+                <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.1em]">Orden de Trabajo</p>
+                <p className="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-green-400 transition-colors">{otExistente.numero}</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors shrink-0" />
+            </Link>
+          )}
+          {cot.estado === 'aprobada' && !otExistente && (
             <GenerarOTBtn
               cotizacionId={id}
               maquinas={maquinas}
-              otExistente={otExistente}
+              otExistente={null}
             />
           )}
         </div>
@@ -348,6 +382,13 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
           <p className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">{cot.notas}</p>
         </div>
       )}
+
+      {/* Notas internas */}
+      <NotasInternasEditor
+        id={id}
+        tipo="cotizacion"
+        valor={(cot as { notas_internas?: string | null }).notas_internas ?? null}
+      />
 
       <p className="text-[12px] text-[var(--text-muted)]">
         Precios netos, no incluyen IVA. Validez 30 días desde emisión. Sujeto a disponibilidad de materiales.

@@ -10,6 +10,7 @@ export default async function ClientesPage() {
     .from('clientes')
     .select('id, nombre, rut, email, telefono, nivel_precio, descuento_porcentaje, razon_social, nombre_fantasia, contactos(nombre, email, telefono, es_principal)')
     .order('nombre')
+    .limit(100)
 
   if (error) {
     return (

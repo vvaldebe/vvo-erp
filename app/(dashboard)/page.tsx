@@ -15,6 +15,8 @@ function fecha(iso: string | null) {
 export default async function DashboardPage() {
   const supabase = await createClient()
 
+  await supabase.rpc('actualizar_facturas_vencidas')
+
   const hoy        = new Date()
   const inicioMes  = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]
   const hace3dias  = new Date(Date.now() - 3 * 86400000).toISOString()

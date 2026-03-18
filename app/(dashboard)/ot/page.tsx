@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import EstadoBadge from '@/components/shared/EstadoBadge'
+import CalendarioOT from '@/components/ot/CalendarioOT'
 
 function clp(n: number) {
   return new Intl.NumberFormat('es-CL', {
@@ -17,7 +18,14 @@ function fecha(iso: string | null) {
 
 const ESTADOS = ['pendiente', 'en_produccion', 'terminado', 'entregado'] as const
 
-export default async function OTPage() {
+export default async function OTPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string }>
+}) {
+  const { vista } = await searchParams
+  const isCalendario = vista === 'calendario'
+
   const supabase = await createClient()
 
   const { data: ots } = await supabase
@@ -28,6 +36,7 @@ export default async function OTPage() {
       cotizaciones ( numero )
     `)
     .order('created_at', { ascending: false })
+    .limit(100)
 
   const rows = (ots ?? []).map((ot) => {
     const cliente    = Array.isArray(ot.clientes)    ? ot.clientes[0]    : ot.clientes
@@ -41,6 +50,10 @@ export default async function OTPage() {
     return acc
   }, {} as Record<string, number>)
 
+  const now = new Date()
+  const initialYear  = now.getFullYear()
+  const initialMonth = now.getMonth()
+
   return (
     <div className="space-y-5">
 
@@ -50,12 +63,40 @@ export default async function OTPage() {
           <h1 className="text-[18px] font-semibold text-[var(--text-primary)]">Órdenes de trabajo</h1>
           <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">{rows.length} en total</p>
         </div>
-        <Link
-          href="/ot/nueva"
-          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[13px] font-medium rounded-[6px] transition-colors"
-        >
-          + Nueva OT
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Vista toggle */}
+          <div className="flex items-center border border-[var(--border-default)] rounded-[6px] overflow-hidden text-[12px] font-medium">
+            <Link
+              href="/ot"
+              className={[
+                'px-3 h-8 flex items-center transition-colors',
+                !isCalendario
+                  ? 'bg-[#7c3aed] text-white'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]',
+              ].join(' ')}
+            >
+              Lista
+            </Link>
+            <Link
+              href="/ot?vista=calendario"
+              className={[
+                'px-3 h-8 flex items-center transition-colors border-l border-[var(--border-default)]',
+                isCalendario
+                  ? 'bg-[#7c3aed] text-white'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-muted)]',
+              ].join(' ')}
+            >
+              Calendario
+            </Link>
+          </div>
+
+          <Link
+            href="/ot/nueva"
+            className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[13px] font-medium rounded-[6px] transition-colors"
+          >
+            + Nueva OT
+          </Link>
+        </div>
       </div>
 
       {/* Cards de estado */}
@@ -68,51 +109,66 @@ export default async function OTPage() {
         ))}
       </div>
 
-      {/* Tabla */}
-      <div className="border border-[var(--border-default)] rounded-[8px] overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px]">
-          <thead>
-            <tr className="border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
-              <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">OT</th>
-              <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Cliente</th>
-              <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Cotización</th>
-              <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Estado</th>
-              <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Entrega</th>
-              <th className="text-right px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-[13px] text-[var(--text-muted)]">
-                  No hay órdenes de trabajo aún
-                </td>
+      {isCalendario ? (
+        /* Calendario */
+        <CalendarioOT
+          ots={rows.map((r) => ({
+            id:            r.id,
+            numero:        r.numero,
+            estado:        r.estado as 'pendiente' | 'en_produccion' | 'terminado' | 'entregado',
+            fecha_entrega: r.fecha_entrega,
+            cliente_nombre: r.cliente_nombre,
+          }))}
+          initialYear={initialYear}
+          initialMonth={initialMonth}
+        />
+      ) : (
+        /* Tabla */
+        <div className="border border-[var(--border-default)] rounded-[8px] overflow-hidden">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px]">
+            <thead>
+              <tr className="border-b border-[var(--border-default)] bg-[var(--bg-muted)]">
+                <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">OT</th>
+                <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Cliente</th>
+                <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Cotización</th>
+                <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Estado</th>
+                <th className="text-left px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Entrega</th>
+                <th className="text-right px-4 h-10 text-[11px] font-medium text-[var(--text-secondary)] uppercase tracking-wide">Total</th>
               </tr>
-            )}
-            {rows.map((ot, i) => (
-              <tr
-                key={ot.id}
-                className={`border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] cursor-pointer transition-colors ${i % 2 === 1 ? 'bg-[var(--bg-muted)]' : 'bg-[var(--bg-card)]'}`}
-              >
-                <td className="px-4 py-3">
-                  <Link href={`/ot/${ot.id}`} className="text-[14px] font-semibold text-[#7c3aed] hover:underline">
-                    {ot.numero}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-[14px] text-[var(--text-primary)]">{ot.cliente_nombre ?? <span className="text-[var(--text-muted)]">Sin cliente</span>}</td>
-                <td className="px-4 py-3 text-[13px] text-[var(--text-secondary)] font-mono">{ot.cotizacion_numero ?? '—'}</td>
-                <td className="px-4 py-3">
-                  <EstadoBadge estado={ot.estado as 'pendiente' | 'en_produccion' | 'terminado' | 'entregado'} />
-                </td>
-                <td className="px-4 py-3 text-[13px] text-[var(--text-secondary)]">{fecha(ot.fecha_entrega)}</td>
-                <td className="px-4 py-3 text-right font-mono text-[13px] text-[var(--text-primary)] tabular-nums">{clp(ot.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-[13px] text-[var(--text-muted)]">
+                    No hay órdenes de trabajo aún
+                  </td>
+                </tr>
+              )}
+              {rows.map((ot, i) => (
+                <tr
+                  key={ot.id}
+                  className={`border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] cursor-pointer transition-colors ${i % 2 === 1 ? 'bg-[var(--bg-muted)]' : 'bg-[var(--bg-card)]'}`}
+                >
+                  <td className="px-4 py-3">
+                    <Link href={`/ot/${ot.id}`} className="text-[14px] font-semibold text-[#7c3aed] hover:underline">
+                      {ot.numero}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-[14px] text-[var(--text-primary)]">{ot.cliente_nombre ?? <span className="text-[var(--text-muted)]">Sin cliente</span>}</td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-secondary)] font-mono">{ot.cotizacion_numero ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    <EstadoBadge estado={ot.estado as 'pendiente' | 'en_produccion' | 'terminado' | 'entregado'} />
+                  </td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-secondary)]">{fecha(ot.fecha_entrega)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-[13px] text-[var(--text-primary)] tabular-nums">{clp(ot.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   )

@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import EstadoBadge from '@/components/shared/EstadoBadge'
 import AccionesOT from '@/components/ot/AccionesOT'
+import NotasInternasEditor from '@/components/shared/NotasInternasEditor'
 
 function clp(n: number) {
   return new Intl.NumberFormat('es-CL', {
@@ -30,7 +31,7 @@ export default async function OTDetallePage({
     supabase
       .from('ordenes_trabajo')
       .select(`
-        id, numero, estado, fecha_entrega, notas_produccion, archivo_diseno,
+        id, numero, estado, fecha_entrega, notas_produccion, notas_internas, archivo_diseno,
         subtotal, total, created_at,
         maquina_id,
         clientes ( id, nombre, email, telefono ),
@@ -242,6 +243,13 @@ export default async function OTDetallePage({
               <p className="text-[14px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">{ot.notas_produccion}</p>
             </div>
           )}
+
+          {/* Notas internas */}
+          <NotasInternasEditor
+            id={id}
+            tipo="ot"
+            valor={(ot as { notas_internas?: string | null }).notas_internas ?? null}
+          />
 
           {/* Archivo de diseño */}
           {ot.archivo_diseno && (

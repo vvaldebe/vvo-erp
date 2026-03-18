@@ -26,6 +26,8 @@ export default async function FacturasPage({
 
   const supabase = await createClient()
 
+  await supabase.rpc('actualizar_facturas_vencidas')
+
   const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
 
   let query = supabase
@@ -36,6 +38,8 @@ export default async function FacturasPage({
   if (filtro !== 'todas') {
     query = query.eq('estado', filtro)
   }
+
+  query = query.limit(100)
 
   const [
     { data: facturas },

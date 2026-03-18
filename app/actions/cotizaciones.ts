@@ -27,6 +27,7 @@ const cotizacionItemSchema = z.object({
   subtotal:       z.number().min(0),
   orden:          z.number().int().min(0),
   notas_item:     z.string().optional().nullable(),
+  unidad:         z.enum(['m2', 'ml', 'unidad']).default('m2'),
   terminaciones:  z.array(terminacionItemSchema).default([]),
 })
 
@@ -462,4 +463,178 @@ export async function crearOTdesdeCotizacion(
   revalidatePath(`/cotizaciones/${cotizacionId}`)
 
   return { otId: otRow.id }
+}
+
+// ── Aprobar cotización y generar OT en un solo paso ──────────────────────────
+
+export async function aprobarYGenerarOT(
+  id: string
+): Promise<{ error: string } | { otId: string } | { approved: true }> {
+  const supabase = await createClient()
+
+  // 1. Aprobar cotización
+  const { error: approveError } = await supabase
+    .from('cotizaciones')
+    .update({ estado: 'aprobada', updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (approveError) return { error: approveError.message }
+
+  revalidatePath('/cotizaciones')
+
+  // 2. Crear OT (best-effort — si falla no bloquea la aprobación)
+  const otResult = await crearOTdesdeCotizacion(id, null)
+  if ('error' in otResult) return { approved: true }
+
+  return { otId: otResult.otId }
+}
+
+// ── Paginación ─────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 50
+
+export interface CotizacionListRow {
+  id: string
+  numero: string
+  estado: 'borrador' | 'enviada' | 'aprobada' | 'rechazada'
+  total: number
+  created_at: string
+  cliente_nombre: string
+}
+
+export async function fetchCotizacionesPage(
+  offset: number,
+): Promise<{ rows: CotizacionListRow[]; hasMore: boolean }> {
+  const supabase = await createClient()
+
+  const { data } = await supabase
+    .from('cotizaciones')
+    .select('id, numero, estado, total, created_at, clientes(nombre)')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1)
+
+  const rows: CotizacionListRow[] = (data ?? []).map((row) => {
+    const c = row.clientes
+    let nombre = '—'
+    if (c) nombre = Array.isArray(c) ? ((c as { nombre: string }[])[0]?.nombre ?? '—') : (c as { nombre: string }).nombre ?? '—'
+    return {
+      id:             row.id,
+      numero:         row.numero,
+      estado:         row.estado as CotizacionListRow['estado'],
+      total:          row.total,
+      created_at:     row.created_at,
+      cliente_nombre: nombre,
+    }
+  })
+
+  return { rows, hasMore: rows.length === PAGE_SIZE }
+}
+
+// ── Bulk actions ────────────────────────────────────────────────────────────
+
+const bulkIdsSchema = z.array(z.string().uuid()).min(1)
+
+export async function bulkCambiarEstadoCotizaciones(
+  ids: string[],
+  estado: 'enviada' | 'aprobada' | 'rechazada',
+): Promise<{ error: string } | { success: true; count: number }> {
+  const parsed = bulkIdsSchema.safeParse(ids)
+  if (!parsed.success) return { error: 'IDs inválidos' }
+
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('cotizaciones')
+    .update({ estado, updated_at: new Date().toISOString() })
+    .in('id', parsed.data)
+    .select('id')
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/cotizaciones')
+  return { success: true, count: (data ?? []).length }
+}
+
+export async function bulkEliminarCotizaciones(
+  ids: string[],
+): Promise<{ error: string } | { success: true; count: number }> {
+  const parsed = bulkIdsSchema.safeParse(ids)
+  if (!parsed.success) return { error: 'IDs inválidos' }
+
+  const supabase = await createClient()
+
+  // Safety: only delete borrador or rechazada
+  const { data, error } = await supabase
+    .from('cotizaciones')
+    .delete()
+    .in('id', parsed.data)
+    .in('estado', ['borrador', 'rechazada'])
+    .select('id')
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/cotizaciones')
+  return { success: true, count: (data ?? []).length }
+}
+
+// ── Búsqueda ─────────────────────────────────────────────────────────────────
+
+export async function buscarCotizaciones(
+  query: string,
+): Promise<CotizacionListRow[]> {
+  const supabase = await createClient()
+  const q = query.trim()
+  if (!q || q.length < 2) return []
+
+  // Query 1: match by numero
+  const { data: byNumero } = await supabase
+    .from('cotizaciones')
+    .select('id, numero, estado, total, created_at, clientes(nombre)')
+    .ilike('numero', `%${q}%`)
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  // Query 2: find client IDs matching the name, then fetch their cotizaciones
+  const { data: clientesMatch } = await supabase
+    .from('clientes')
+    .select('id')
+    .ilike('nombre', `%${q}%`)
+    .limit(50)
+
+  const clienteIds = (clientesMatch ?? []).map((c) => c.id)
+  let byCliente: typeof byNumero = []
+  if (clienteIds.length > 0) {
+    const { data } = await supabase
+      .from('cotizaciones')
+      .select('id, numero, estado, total, created_at, clientes(nombre)')
+      .in('cliente_id', clienteIds)
+      .order('created_at', { ascending: false })
+      .limit(100)
+    byCliente = data ?? []
+  }
+
+  // Merge and deduplicate by id
+  const seen = new Set<string>()
+  const merged: CotizacionListRow[] = []
+
+  for (const row of [...(byNumero ?? []), ...(byCliente ?? [])]) {
+    if (seen.has(row.id)) continue
+    seen.add(row.id)
+    const c = row.clientes
+    let nombre = '—'
+    if (c) nombre = Array.isArray(c) ? ((c as { nombre: string }[])[0]?.nombre ?? '—') : (c as { nombre: string }).nombre ?? '—'
+    merged.push({
+      id:             row.id,
+      numero:         row.numero,
+      estado:         row.estado as CotizacionListRow['estado'],
+      total:          row.total,
+      created_at:     row.created_at,
+      cliente_nombre: nombre,
+    })
+  }
+
+  // Sort merged results by created_at descending
+  merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  return merged
 }

@@ -12,8 +12,10 @@ import {
 } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, X, Loader2, AlertCircle, ChevronDown } from 'lucide-react'
+import { Plus, X, Loader2, AlertCircle, ChevronDown, LayoutTemplate } from 'lucide-react'
 import { crearCotizacion, actualizarCotizacion } from '@/app/actions/cotizaciones'
+import PlantillaModal from './PlantillaModal'
+import type { Plantilla } from '@/app/actions/plantillas'
 import {
   getPrecioNivel,
   calcularIva,
@@ -69,6 +71,7 @@ export interface InitialItem {
   subtotal:        number
   orden:           number
   notas_item:      string | null
+  unidad:          UnidadMedida | null
   terminaciones:   { terminacion_id: string | null; nombre: string; precio: number; cantidad: number }[]
   _producto:       (ProductoOption & { id: string }) | null
 }
@@ -108,6 +111,7 @@ const itemSchema = z.object({
   subtotal:        z.number().min(0),
   orden:           z.number().int().min(0),
   notas_item:      z.string().optional().nullable(),
+  unidad:          z.enum(['m2', 'ml', 'unidad']),
   terminaciones:   z.array(terminacionItemSchema),
 })
 
@@ -183,6 +187,7 @@ export default function NuevaCotizacionForm({
   const [serverError, setServerError] = useState<string | null>(null)
   const [draftBanner, setDraftBanner] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
+  const [showPlantillaModal, setShowPlantillaModal] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Estado de cliente seleccionado
@@ -215,6 +220,7 @@ export default function NuevaCotizacionForm({
         subtotal:        item.subtotal,
         orden:           item.orden,
         notas_item:      item.notas_item ?? null,
+        unidad:          (item.unidad ?? item._producto?.unidad ?? 'm2') as UnidadMedida,
         terminaciones:   item.terminaciones,
       })),
     },
@@ -369,8 +375,32 @@ export default function NuevaCotizacionForm({
       subtotal:        0,
       orden:           fields.length,
       notas_item:      null,
+      unidad:          'm2',
       terminaciones:   [],
     })
+  }
+
+  // Agregar ítems desde plantilla
+  function handlePlantillaSelect(plantilla: Plantilla) {
+    const currentLength = fields.length
+    for (let i = 0; i < plantilla.items.length; i++) {
+      const item = plantilla.items[i]
+      // Try to resolve the product to get its unidad
+      const prod = item.producto_id ? productos.find((p) => p.id === item.producto_id) : null
+      append({
+        producto_id:     item.producto_id,
+        descripcion:     item.descripcion ?? '',
+        ancho:           item.ancho ?? 1,
+        alto:            item.alto ?? 1,
+        cantidad:        item.cantidad,
+        precio_unitario: 0,
+        subtotal:        0,
+        orden:           currentLength + i,
+        notas_item:      null,
+        unidad:          prod?.unidad ?? 'm2',
+        terminaciones:   [],
+      })
+    }
   }
 
   // Guardar cotización
@@ -393,6 +423,7 @@ export default function NuevaCotizacionForm({
         subtotal:        it.subtotal,
         orden:           idx,
         notas_item:      it.notas_item ?? null,
+        unidad:          it.unidad ?? 'm2',
         terminaciones:   (it.terminaciones ?? []).map((t) => ({
           terminacion_id: t.terminacion_id ?? null,
           nombre:         t.nombre,
@@ -642,17 +673,35 @@ export default function NuevaCotizacionForm({
                 nivel={nivel}
                 descuentoEspecial={clienteSeleccionado?.descuento_porcentaje ?? 0}
                 initialProducto={initialItems[index]?._producto ?? null}
+                initialDescripcion={initialItems[index]?.descripcion ?? null}
               />
             ))}
 
-            <button
-              type="button"
-              onClick={agregarItem}
-              className="w-full py-2.5 border-2 border-dashed border-[var(--border-default)] rounded-[6px] text-sm text-[var(--text-muted)] hover:border-[#7c3aed]/40 hover:text-[#7c3aed] transition-colors flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Agregar ítem
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={agregarItem}
+                className="flex-1 py-2.5 border-2 border-dashed border-[var(--border-default)] rounded-[6px] text-sm text-[var(--text-muted)] hover:border-[#7c3aed]/40 hover:text-[#7c3aed] transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar ítem
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPlantillaModal(true)}
+                className="py-2.5 px-4 border-2 border-dashed border-[var(--border-default)] rounded-[6px] text-sm text-[var(--text-muted)] hover:border-[#7c3aed]/40 hover:text-[#7c3aed] transition-colors flex items-center gap-2 shrink-0"
+              >
+                <LayoutTemplate className="w-4 h-4" />
+                Usar plantilla
+              </button>
+            </div>
+
+            {showPlantillaModal && (
+              <PlantillaModal
+                onSelect={handlePlantillaSelect}
+                onClose={() => setShowPlantillaModal(false)}
+              />
+            )}
           </section>
 
           {/* Sección 4: Notas */}
@@ -763,6 +812,7 @@ interface ItemRowProps {
   nivel: NivelPrecio
   descuentoEspecial: number
   initialProducto?: (ProductoOption & { id: string }) | null
+  initialDescripcion?: string | null
 }
 
 function ItemRow({
@@ -778,8 +828,11 @@ function ItemRow({
   nivel,
   descuentoEspecial,
   initialProducto,
+  initialDescripcion,
 }: ItemRowProps) {
-  const [productoQuery,    setProductoQuery]    = useState('')
+  // Bug 4: If there's no catalog product but there's a description, show it in the search field
+  const hasInitialProduct = initialProducto != null
+  const [productoQuery,    setProductoQuery]    = useState(hasInitialProduct ? '' : (initialDescripcion ?? ''))
   const [productoDropdown, setProductoDropdown] = useState(false)
   const [productoSel,      setProductoSel]      = useState<ProductoOption | null>(initialProducto ?? null)
   const [mostrarTerms,     setMostrarTerms]      = useState(false)
@@ -794,7 +847,9 @@ function ItemRow({
   const alto     = Number(watch(`items.${index}.alto`))     || 0
   const cantidad = Number(watch(`items.${index}.cantidad`)) || 1
   const precioU  = Number(watch(`items.${index}.precio_unitario`)) || 0
-  const unidad   = productoSel?.unidad
+
+  // Bug 1 & 5: unidad is now stored in form state, not derived from productoSel only
+  const unidad: UnidadMedida = (watch(`items.${index}.unidad`) as UnidadMedida) ?? 'm2'
 
   const subtotalCalc = calcItemSubtotal(unidad, precioU, ancho, alto, cantidad)
 
@@ -808,6 +863,18 @@ function ItemRow({
     .filter((p) => p.nombre.toLowerCase().includes(productoQuery.toLowerCase()))
     .slice(0, 25)
 
+  // Bug 1: handler for manual unidad type change (when no catalog product is selected)
+  function cambiarUnidad(nuevaUnidad: UnidadMedida) {
+    setValue(`items.${index}.unidad`, nuevaUnidad)
+    // Clear irrelevant dimension fields
+    if (nuevaUnidad === 'unidad') {
+      setValue(`items.${index}.ancho`, null)
+      setValue(`items.${index}.alto`, null)
+    } else if (nuevaUnidad === 'ml') {
+      setValue(`items.${index}.alto`, null)
+    }
+  }
+
   function seleccionarProducto(p: ProductoOption) {
     setProductoSel(p)
     setProductoQuery('')
@@ -815,6 +882,17 @@ function ItemRow({
     const modoMinutos = detectarModoMinutos(p.nombre)
     setEsMinutos(modoMinutos)
     setValue(`items.${index}.producto_id`, p.id)
+
+    // Bug 1 & 5: set unidad in form state from product
+    setValue(`items.${index}.unidad`, p.unidad)
+
+    // Clear alto when product is unidad or ml type
+    if (p.unidad === 'unidad') {
+      setValue(`items.${index}.ancho`, null)
+      setValue(`items.${index}.alto`, null)
+    } else if (p.unidad === 'ml') {
+      setValue(`items.${index}.alto`, null)
+    }
 
     // Intentar auto-llenar precio/minuto desde servicios_maquina
     if (modoMinutos && serviciosMaquina.length > 0) {
@@ -848,6 +926,11 @@ function ItemRow({
     setValue(`items.${index}.subtotal`, newSub)
   }
 
+  // Derived flags for field visibility
+  const mostrarAncho   = !esMinutos && unidad !== 'unidad'
+  const mostrarAlto    = !esMinutos && unidad === 'm2'
+  const mostrarAreaM2  = !esMinutos && unidad === 'm2'
+
   return (
     <div className="border border-[var(--border-default)] rounded-[8px] overflow-hidden">
       <div className="p-4 space-y-3">
@@ -871,6 +954,7 @@ function ItemRow({
                     setValue(`items.${index}.producto_id`, null)
                     setValue(`items.${index}.precio_unitario`, 0)
                     setValue(`items.${index}.subtotal`, 0)
+                    // Keep unidad as-is so user can manually adjust
                   }}
                   className="text-[var(--text-muted)] hover:text-gray-600"
                 >
@@ -881,7 +965,7 @@ function ItemRow({
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Buscar producto..."
+                  placeholder="Buscar producto del catálogo..."
                   value={productoQuery}
                   onChange={(e) => { setProductoQuery(e.target.value); setProductoDropdown(true) }}
                   onFocus={() => setProductoDropdown(true)}
@@ -905,13 +989,32 @@ function ItemRow({
                 )}
               </div>
             )}
-            {/* Descripción libre — siempre visible */}
+            {/* Descripción libre — siempre visible (Bug 2 & 4) */}
             <input
               type="text"
               placeholder={productoSel ? 'Detalle adicional, ej: diseño ave + datos cliente' : 'Descripción del ítem'}
               {...register(`items.${index}.descripcion`)}
               className={`${INPUT_BASE} w-full mt-1`}
             />
+            {/* Bug 1: Selector de tipo de unidad — visible solo cuando no hay producto seleccionado del catálogo */}
+            {!productoSel && !esMinutos && (
+              <div className="flex items-center gap-1 mt-1.5">
+                {(['m2', 'ml', 'unidad'] as const).map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => cambiarUnidad(u)}
+                    className={`px-2.5 py-1 text-xs rounded-[4px] border transition-colors font-medium ${
+                      unidad === u
+                        ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
+                        : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[#7c3aed]/40 hover:text-[#7c3aed]'
+                    }`}
+                  >
+                    {u === 'm2' ? 'm²' : u === 'ml' ? 'Metro lineal' : 'Unidad'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             type="button"
@@ -924,10 +1027,11 @@ function ItemRow({
 
         {/* Fila 2: dimensiones + precios */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          {!esMinutos && (
+          {/* Bug 1 & 5: Ancho — shown for m2 and ml, hidden for unidad and minutos */}
+          {mostrarAncho && (
             <div className="space-y-1">
               <label className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wider block">
-                Ancho (m)
+                {unidad === 'ml' ? 'Metros (ml)' : 'Ancho (m)'}
               </label>
               <input
                 type="number"
@@ -939,23 +1043,24 @@ function ItemRow({
               />
             </div>
           )}
-          {!esMinutos && (
+          {/* Bug 1 & 5: Alto — shown only for m2, hidden for ml and unidad */}
+          {mostrarAlto && (
             <div className="space-y-1">
               <label className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wider block">
-                {unidad === 'ml' ? 'Largo (m)' : 'Alto (m)'}
+                Alto (m)
               </label>
               <input
                 type="number"
                 step="0.01"
                 min={0}
                 {...register(`items.${index}.alto`, { valueAsNumber: true })}
-                disabled={unidad === 'unidad'}
-                className={`${INPUT_BASE} w-full ${unidad === 'unidad' ? 'opacity-40 cursor-not-allowed bg-gray-50' : ''}`}
+                className={`${INPUT_BASE} w-full`}
                 placeholder="0.00"
               />
             </div>
           )}
-          {!esMinutos && (!unidad || unidad === 'm2') && (
+          {/* m² display — shown only for m2 */}
+          {mostrarAreaM2 && (
             <div className="space-y-1">
               <label className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wider block">m²</label>
               <div className={`${INPUT_BASE} bg-gray-50 text-[var(--text-secondary)] text-right`}>
@@ -977,7 +1082,7 @@ function ItemRow({
           </div>
           <div className="space-y-1">
             <label className="text-xs text-[var(--text-secondary)] font-semibold uppercase tracking-wider block">
-              {esMinutos ? '$/min' : 'Precio/u'}
+              {esMinutos ? '$/min' : unidad === 'm2' ? 'Precio/m²' : unidad === 'ml' ? 'Precio/ml' : 'Precio/u'}
             </label>
             <input
               type="number"
@@ -1015,7 +1120,7 @@ function ItemRow({
             type="text"
             placeholder="Ej: incluye material, mínimo 15 min..."
             {...register(`items.${index}.notas_item`)}
-            className="w-full px-2 py-1.5 text-[12px] text-[#71717a] border border-[#e4e4e7] rounded-[5px] focus:outline-none focus:border-[#e91e8c]/50 bg-white"
+            className="w-full px-2 py-1.5 text-[12px] text-[var(--text-muted)] border border-[var(--border-default)] rounded-[5px] focus:outline-none focus:border-[#e91e8c]/50 bg-[var(--bg-input)]"
           />
         ) : (
           <button

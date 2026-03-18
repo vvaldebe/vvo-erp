@@ -32,11 +32,11 @@ export default function BottomNav() {
               'flex-1 flex flex-col items-center justify-center gap-1 transition-colors duration-150 cursor-pointer',
               isActive
                 ? 'text-[#7c3aed]'
-                : 'text-[var(--text-secondary)] active:text-[#e4e4e7]'
+                : 'text-[var(--text-secondary)] active:text-[var(--text-faint)]'
             )}
           >
             <Icon className={cn('w-[22px] h-[22px]', isActive && 'stroke-[2.5]')} />
-            <span className={cn('text-[10px] font-medium leading-none', isActive ? 'text-[#7c3aed]' : 'text-[#71717a]')}>
+            <span className={cn('text-[10px] font-medium leading-none', isActive ? 'text-[#7c3aed]' : 'text-[var(--text-muted)]')}>
               {label}
             </span>
           </Link>
