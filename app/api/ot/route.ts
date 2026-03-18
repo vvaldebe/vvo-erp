@@ -1,6 +1,19 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { generarNumeroOT } from '@/lib/utils/numeracion'
+
+async function nextNumeroOT(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string> {
+  const { data } = await supabase
+    .from('ordenes_trabajo')
+    .select('numero')
+    .like('numero', 'OT-%')
+    .order('numero', { ascending: false })
+    .limit(1)
+  const last = data?.[0]?.numero
+  const n = last ? parseInt(last.replace('OT-', ''), 10) : 0
+  return generarNumeroOT(isNaN(n) ? 1 : n + 1)
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -8,9 +21,10 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const body = await req.json()
-  const { numero, cliente_id, maquina_id, fecha_entrega, notas_produccion, subtotal, total, items } = body
+  const { cliente_id, maquina_id, fecha_entrega, notas_produccion, subtotal, total, items } = body
 
-  if (!numero) return NextResponse.json({ error: 'Número requerido' }, { status: 400 })
+  // Generar número OT server-side (MAX-based para evitar duplicados)
+  const numero = await nextNumeroOT(supabase)
 
   const { data: ot, error: otError } = await supabase
     .from('ordenes_trabajo')

@@ -8,6 +8,35 @@ import { calcularIva } from '@/lib/utils/calculos'
 import { generarNumeroOT, generarNumeroCotizacion } from '@/lib/utils/numeracion'
 import { randomUUID } from 'crypto'
 
+// ── Helpers de numeración seguros (usan MAX, no COUNT) ─────────────────────
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>
+
+async function nextNumeroCotizacion(supabase: SupabaseClient): Promise<string> {
+  const year = new Date().getFullYear()
+  const { data } = await supabase
+    .from('cotizaciones')
+    .select('numero')
+    .like('numero', `COT-${year}-%`)
+    .order('numero', { ascending: false })
+    .limit(1)
+  const last = data?.[0]?.numero
+  const n = last ? parseInt(last.split('-')[2] ?? '0', 10) : 0
+  return generarNumeroCotizacion(isNaN(n) ? 1 : n + 1)
+}
+
+async function nextNumeroOT(supabase: SupabaseClient): Promise<string> {
+  const { data } = await supabase
+    .from('ordenes_trabajo')
+    .select('numero')
+    .like('numero', 'OT-%')
+    .order('numero', { ascending: false })
+    .limit(1)
+  const last = data?.[0]?.numero
+  const n = last ? parseInt(last.replace('OT-', ''), 10) : 0
+  return generarNumeroOT(isNaN(n) ? 1 : n + 1)
+}
+
 // ── Schemas ────────────────────────────────────────────────────────────────
 
 const terminacionItemSchema = z.object({
@@ -62,11 +91,14 @@ export async function crearCotizacion(data: CotizacionFormData): Promise<Cotizac
 
   const supabase = await createClient()
 
-  // 1. Insertar cotización
+  // 1. Generar número seguro server-side (ignora el que viene del form)
+  const numero = await nextNumeroCotizacion(supabase)
+
+  // 2. Insertar cotización
   const { data: cotRow, error: cotError } = await supabase
     .from('cotizaciones')
     .insert({
-      numero:       d.numero,
+      numero,
       cliente_id:   d.cliente_id ?? null,
       nivel_precio: d.nivel_precio,
       estado:       'borrador',
@@ -245,12 +277,8 @@ export async function clonarCotizacion(
 
   if (origError || !original) return { error: 'Cotización no encontrada' }
 
-  // Número nuevo
-  const { count } = await supabase
-    .from('cotizaciones')
-    .select('*', { count: 'exact', head: true })
-
-  const numero = generarNumeroCotizacion((count ?? 0) + 1)
+  // Número nuevo (MAX-based para evitar duplicados)
+  const numero = await nextNumeroCotizacion(supabase)
 
   // Crear nueva cotización
   const { data: nueva, error: nuevaError } = await supabase
@@ -436,12 +464,8 @@ export async function crearOTdesdeCotizacion(
 
   if (otExistente) return { error: 'Ya existe una OT para esta cotización' }
 
-  // 3. Generar número OT
-  const { count } = await supabase
-    .from('ordenes_trabajo')
-    .select('*', { count: 'exact', head: true })
-
-  const numeroOT = generarNumeroOT((count ?? 0) + 1)
+  // 3. Generar número OT (MAX-based para evitar duplicados)
+  const numeroOT = await nextNumeroOT(supabase)
 
   // 4. Insertar OT
   const { data: otRow, error: otError } = await supabase

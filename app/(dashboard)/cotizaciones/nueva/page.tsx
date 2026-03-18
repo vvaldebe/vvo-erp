@@ -8,12 +8,17 @@ import type { NivelPrecio, UnidadMedida } from '@/types/database.types'
 export default async function NuevaCotizacionPage() {
   const supabase = await createClient()
 
-  // Obtener número correlativo
-  const { count } = await supabase
+  // Obtener número correlativo (MAX-based para evitar duplicados al eliminar)
+  const year = new Date().getFullYear()
+  const { data: ultimaCot } = await supabase
     .from('cotizaciones')
-    .select('*', { count: 'exact', head: true })
+    .select('numero')
+    .like('numero', `COT-${year}-%`)
+    .order('numero', { ascending: false })
+    .limit(1)
 
-  const numeroCotizacion = generarNumeroCotizacion((count ?? 0) + 1)
+  const lastN = ultimaCot?.[0]?.numero ? parseInt(ultimaCot[0].numero.split('-')[2] ?? '0', 10) : 0
+  const numeroCotizacion = generarNumeroCotizacion(isNaN(lastN) ? 1 : lastN + 1)
 
   // Fetch clientes activos
   const { data: clientesData } = await supabase

@@ -7,13 +7,14 @@ import { generarNumeroOT } from '@/lib/utils/numeracion'
 export default async function NuevaOTPage() {
   const supabase = await createClient()
 
-  const [{ data: clientes }, { data: maquinas }, { count }] = await Promise.all([
+  const [{ data: clientes }, { data: maquinas }, { data: ultimaOT }] = await Promise.all([
     supabase.from('clientes').select('id, nombre').order('nombre'),
     supabase.from('maquinas').select('id, nombre').eq('activo', true).order('nombre'),
-    supabase.from('ordenes_trabajo').select('*', { count: 'exact', head: true }),
+    supabase.from('ordenes_trabajo').select('numero').like('numero', 'OT-%').order('numero', { ascending: false }).limit(1),
   ])
 
-  const numero = generarNumeroOT((count ?? 0) + 1)
+  const lastN = ultimaOT?.[0]?.numero ? parseInt(ultimaOT[0].numero.replace('OT-', ''), 10) : 0
+  const numero = generarNumeroOT(isNaN(lastN) ? 1 : lastN + 1)
 
   return (
     <div className="space-y-5 max-w-2xl">
