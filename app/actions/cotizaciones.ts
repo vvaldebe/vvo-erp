@@ -218,7 +218,8 @@ export async function actualizarCotizacion(
   if (cotError) return { error: cotError.message }
 
   // Borrar ítems anteriores (cascade elimina terminaciones)
-  await supabase.from('cotizacion_items').delete().eq('cotizacion_id', id)
+  const { error: deleteError } = await supabase.from('cotizacion_items').delete().eq('cotizacion_id', id)
+  if (deleteError) return { error: 'Error al actualizar ítems: ' + deleteError.message }
 
   // Reinsertar ítems
   for (const item of d.items) {

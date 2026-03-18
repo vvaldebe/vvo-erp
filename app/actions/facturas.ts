@@ -104,10 +104,11 @@ export async function registrarPago(
   const totalPagado = (pagos ?? []).reduce((sum, p) => sum + p.monto, 0)
 
   if (factura && totalPagado >= factura.total) {
-    await supabase
+    const { error: updateError } = await supabase
       .from('facturas')
       .update({ estado: 'pagada' })
       .eq('id', facturaId)
+    if (updateError) return { error: 'Error al actualizar estado de factura: ' + updateError.message }
   }
 
   revalidatePath(`/facturas/${facturaId}`)

@@ -102,11 +102,13 @@ export async function enviarOtAProduccion(
   let items: ItemRow[] = []
 
   if (ot.cotizacion_id) {
-    const { data: cotItems } = await supabase
+    const { data: cotItems, error: cotItemsError } = await supabase
       .from('cotizacion_items')
       .select('titulo_item, descripcion, ancho, alto, cantidad, subtotal, orden, productos(nombre, unidad)')
       .eq('cotizacion_id', ot.cotizacion_id)
       .order('orden')
+
+    if (cotItemsError) return { error: 'Error al obtener ítems de cotización' }
 
     items = (cotItems ?? []).map((item) => {
       const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos

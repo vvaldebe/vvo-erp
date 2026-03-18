@@ -64,7 +64,12 @@ export async function POST(req: NextRequest) {
         orden:           idx,
       }
     })
-    await supabase.from('ot_items').insert(otItems)
+    const { error: itemsError } = await supabase.from('ot_items').insert(otItems)
+    if (itemsError) {
+      // Revertir: eliminar la OT creada para no dejar datos inconsistentes
+      await supabase.from('ordenes_trabajo').delete().eq('id', ot.id)
+      return NextResponse.json({ error: 'Error al guardar ítems: ' + itemsError.message }, { status: 500 })
+    }
   }
 
   revalidatePath('/ot')

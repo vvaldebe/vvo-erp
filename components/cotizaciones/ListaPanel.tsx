@@ -221,14 +221,19 @@ export default function ListaPanel({ cotizaciones: initialCotizaciones, hasMore:
     if (isLoadingRef.current || !hasMore) return
     isLoadingRef.current = true
     startLoadMore(async () => {
-      const { rows: newRows, hasMore: newHasMore } = await fetchCotizacionesPage(rows.length)
-      setRows((prev) => {
-        const existingIds = new Set(prev.map((r) => r.id))
-        const deduped = newRows.filter((r) => !existingIds.has(r.id))
-        return [...prev, ...deduped]
-      })
-      setHasMore(newHasMore)
-      isLoadingRef.current = false
+      try {
+        const { rows: newRows, hasMore: newHasMore } = await fetchCotizacionesPage(rows.length)
+        setRows((prev) => {
+          const existingIds = new Set(prev.map((r) => r.id))
+          const deduped = newRows.filter((r) => !existingIds.has(r.id))
+          return [...prev, ...deduped]
+        })
+        setHasMore(newHasMore)
+      } catch {
+        toast.error('Error al cargar más cotizaciones')
+      } finally {
+        isLoadingRef.current = false
+      }
     })
   }, [hasMore, rows.length, startLoadMore])
 
