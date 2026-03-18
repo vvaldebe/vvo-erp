@@ -54,6 +54,7 @@ export default async function OTDetallePage({
   // Items: si viene de cotización, los tomamos de cotizacion_items
   let items: {
     id: string
+    titulo_item: string | null
     descripcion: string | null
     ancho: number | null
     alto: number | null
@@ -67,14 +68,16 @@ export default async function OTDetallePage({
   if (cotizacionRaw?.id) {
     const { data: cotItems } = await supabase
       .from('cotizacion_items')
-      .select('id, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden, productos(nombre, unidad)')
+      .select('id, titulo_item, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden, productos(nombre, unidad)')
       .eq('cotizacion_id', cotizacionRaw.id)
       .order('orden')
 
     items = (cotItems ?? []).map((item) => {
       const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
+      const itemAny = item as typeof item & { titulo_item?: string | null }
       return {
         id:              item.id,
+        titulo_item:     itemAny.titulo_item ?? null,
         descripcion:     item.descripcion,
         ancho:           item.ancho,
         alto:            item.alto,
@@ -97,6 +100,7 @@ export default async function OTDetallePage({
       const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
       return {
         id:              item.id,
+        titulo_item:     null,
         descripcion:     item.descripcion,
         ancho:           item.ancho,
         alto:            item.alto,
@@ -218,15 +222,15 @@ export default async function OTDetallePage({
                     return (
                       <tr key={item.id} className={`border-b border-[var(--border-subtle)] ${i % 2 === 1 ? 'bg-[var(--bg-muted)]' : ''}`}>
                         <td className="px-5 py-3.5">
-                          {item.producto_nombre ? (
-                            <>
-                              <p className="text-[14px] font-medium text-[var(--text-primary)]">{item.producto_nombre}</p>
-                              {item.descripcion && item.descripcion !== item.producto_nombre && (
-                                <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
-                              )}
-                            </>
-                          ) : (
-                            <p className="text-[14px] font-medium text-[var(--text-primary)]">{item.descripcion ?? 'Ítem'}</p>
+                          <p className="text-[14px] font-medium text-[var(--text-primary)]">
+                            {item.producto_nombre ?? item.titulo_item ?? item.descripcion ?? 'Ítem'}
+                          </p>
+                          {/* Subtitle: descripcion when not used as title */}
+                          {item.producto_nombre && item.descripcion && (
+                            <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
+                          )}
+                          {!item.producto_nombre && item.titulo_item && item.descripcion && (
+                            <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
                           )}
                         </td>
                         <td className="px-4 py-3.5 text-[14px] text-[var(--text-secondary)]">{dims}</td>

@@ -972,9 +972,11 @@ function ItemRow({
               </div>
             ) : (
               <div className="relative">
+                {/* Hidden input ensures titulo_item is properly registered with RHF on submit */}
+                <input type="hidden" {...register(`items.${index}.titulo_item`)} />
                 <input
                   type="text"
-                  placeholder="Buscar producto del catálogo..."
+                  placeholder="Título del ítem (ej: Señalética tienda)"
                   value={productoQuery}
                   onChange={(e) => {
                     setProductoQuery(e.target.value)

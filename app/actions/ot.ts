@@ -104,14 +104,16 @@ export async function enviarOtAProduccion(
   if (ot.cotizacion_id) {
     const { data: cotItems } = await supabase
       .from('cotizacion_items')
-      .select('descripcion, ancho, alto, cantidad, subtotal, orden, productos(nombre, unidad)')
+      .select('titulo_item, descripcion, ancho, alto, cantidad, subtotal, orden, productos(nombre, unidad)')
       .eq('cotizacion_id', ot.cotizacion_id)
       .order('orden')
 
     items = (cotItems ?? []).map((item) => {
       const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
+      const itemAny = item as typeof item & { titulo_item?: string | null }
+      const titulo = prod?.nombre ?? itemAny.titulo_item ?? item.descripcion ?? 'Ítem'
       return {
-        descripcion:     item.descripcion,
+        descripcion:     titulo,
         producto_nombre: prod?.nombre ?? null,
         ancho:           item.ancho,
         alto:            item.alto,
