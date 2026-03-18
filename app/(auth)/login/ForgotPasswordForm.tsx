@@ -23,7 +23,7 @@ export default function ForgotPasswordForm() {
 
     startTransition(async () => {
       const supabase = createClient()
-      const redirectTo = (process.env.NEXT_PUBLIC_APP_URL ?? '') + '/auth/callback'
+      const redirectTo = (process.env.NEXT_PUBLIC_APP_URL ?? '') + '/auth/callback?type=recovery'
       const { error: authError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo,
       })

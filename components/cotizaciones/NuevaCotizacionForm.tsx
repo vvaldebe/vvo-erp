@@ -992,7 +992,7 @@ function ItemRow({
             {/* Descripción libre — siempre visible (Bug 2 & 4) */}
             <input
               type="text"
-              placeholder={productoSel ? 'Detalle adicional, ej: diseño ave + datos cliente' : 'Descripción del ítem'}
+              placeholder={productoSel ? 'Descripción adicional (opcional)' : 'Descripción del ítem'}
               {...register(`items.${index}.descripcion`)}
               className={`${INPUT_BASE} w-full mt-1`}
             />

@@ -24,6 +24,7 @@ export interface CotizacionPDFData {
   items: {
     descripcion: string
     producto_nombre: string | null
+    notas_item?: string | null
     ancho: number | null
     alto: number | null
     cantidad: number
@@ -298,11 +299,24 @@ export default function CotizacionPDF({ data }: { data: CotizacionPDFData }) {
           <View key={i}>
             <View style={i % 2 === 0 ? s.tableRow : s.tableRowAlt}>
               <View style={s.colDesc}>
-                <Text style={s.cellText}>
-                  {item.producto_nombre ?? item.descripcion}
-                </Text>
-                {item.producto_nombre && item.descripcion && (
-                  <Text style={s.cellMuted}>{item.descripcion}</Text>
+                {item.producto_nombre ? (
+                  <>
+                    <Text style={{ ...s.cellText, fontFamily: 'Helvetica-Bold' }}>
+                      {item.producto_nombre}
+                    </Text>
+                    {item.descripcion && item.descripcion !== item.producto_nombre && (
+                      <Text style={s.cellMuted}>{item.descripcion}</Text>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Text style={{ ...s.cellText, fontFamily: 'Helvetica-Bold' }}>
+                      {item.descripcion}
+                    </Text>
+                    {item.notas_item && (
+                      <Text style={s.cellMuted}>{item.notas_item}</Text>
+                    )}
+                  </>
                 )}
               </View>
               <Text style={{ ...s.cellMuted, ...s.colDim }}>

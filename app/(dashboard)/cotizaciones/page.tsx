@@ -132,7 +132,7 @@ async function fetchDetail(id: string) {
   const { data: items } = await supabase
     .from('cotizacion_items')
     .select(`
-      id, descripcion, ancho, alto, cantidad,
+      id, descripcion, notas_item, ancho, alto, cantidad,
       precio_unitario, subtotal, orden,
       productos ( nombre, unidad )
     `)
@@ -330,9 +330,20 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
                   <React.Fragment key={item.id}>
                     <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
                       <td className="px-4 py-3">
-                        <p className="text-[13px] font-medium text-[var(--text-primary)]">{prod?.nombre ?? item.descripcion ?? 'Ítem'}</p>
-                        {prod?.nombre && item.descripcion && (
-                          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
+                        {prod ? (
+                          <>
+                            <p className="text-[13px] font-medium text-[var(--text-primary)]">{prod.nombre}</p>
+                            {item.descripcion && item.descripcion !== prod.nombre && (
+                              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-[13px] font-medium text-[var(--text-primary)]">{item.descripcion ?? 'Ítem'}</p>
+                            {(item as typeof item & { notas_item?: string | null }).notas_item && (
+                              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{(item as typeof item & { notas_item?: string | null }).notas_item}</p>
+                            )}
+                          </>
                         )}
                       </td>
                       <td className="px-3 py-3 text-[13px] text-[var(--text-secondary)] whitespace-nowrap">{dims}</td>

@@ -33,7 +33,7 @@ export async function GET(
   const { data: items, error: itemsError } = await supabase
     .from('cotizacion_items')
     .select(`
-      id, descripcion, ancho, alto, cantidad,
+      id, descripcion, notas_item, ancho, alto, cantidad,
       precio_unitario, subtotal, orden,
       productos ( nombre, unidad )
     `)
@@ -128,6 +128,7 @@ export async function GET(
       return {
         descripcion:     item.descripcion ?? prod?.nombre ?? 'Ítem',
         producto_nombre: prod?.nombre ?? null,
+        notas_item:      (item as typeof item & { notas_item?: string | null }).notas_item ?? null,
         ancho:           item.ancho,
         alto:            item.alto,
         cantidad:        item.cantidad,

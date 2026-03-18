@@ -17,12 +17,12 @@ export default function LoginPage() {
       <div className="w-full max-w-[340px]">
 
         {/* Logo */}
-        <div className="flex justify-center mb-10 mt-6">
+        <div className="flex justify-center mb-8">
           <Image
             src="/logo-vvo.png"
             alt="VVO Publicidad"
-            width={200}
-            height={63}
+            width={160}
+            height={50}
             className="object-contain h-auto w-auto"
             priority
           />

@@ -212,11 +212,15 @@ export default async function OTDetallePage({
                     return (
                       <tr key={item.id} className={`border-b border-[var(--border-subtle)] ${i % 2 === 1 ? 'bg-[var(--bg-muted)]' : ''}`}>
                         <td className="px-5 py-3.5">
-                          <p className="text-[14px] font-medium text-[var(--text-primary)]">
-                            {item.producto_nombre ?? item.descripcion ?? 'Ítem'}
-                          </p>
-                          {item.producto_nombre && item.descripcion && (
-                            <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
+                          {item.producto_nombre ? (
+                            <>
+                              <p className="text-[14px] font-medium text-[var(--text-primary)]">{item.producto_nombre}</p>
+                              {item.descripcion && item.descripcion !== item.producto_nombre && (
+                                <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-[14px] font-medium text-[var(--text-primary)]">{item.descripcion ?? 'Ítem'}</p>
                           )}
                         </td>
                         <td className="px-4 py-3.5 text-[14px] text-[var(--text-secondary)]">{dims}</td>
