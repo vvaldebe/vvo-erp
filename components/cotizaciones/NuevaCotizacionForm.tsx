@@ -63,6 +63,7 @@ interface ServicioMaquinaOption {
 
 export interface InitialItem {
   producto_id:     string | null
+  titulo_item:     string | null
   descripcion:     string | null
   ancho:           number | null
   alto:            number | null
@@ -103,6 +104,7 @@ const terminacionItemSchema = z.object({
 
 const itemSchema = z.object({
   producto_id:     z.string().optional().nullable(),
+  titulo_item:     z.string().optional().nullable(),
   descripcion:     z.string().optional().nullable(),
   ancho:           z.number().min(0).optional().nullable(),
   alto:            z.number().min(0).optional().nullable(),
@@ -212,6 +214,7 @@ export default function NuevaCotizacionForm({
       asunto:       initialAsunto,
       items:        initialItems.map((item) => ({
         producto_id:     item.producto_id,
+        titulo_item:     item.titulo_item ?? null,
         descripcion:     item.descripcion,
         ancho:           item.ancho,
         alto:            item.alto,
@@ -367,7 +370,8 @@ export default function NuevaCotizacionForm({
   function agregarItem() {
     append({
       producto_id:     null,
-      descripcion:     '',
+      titulo_item:     null,
+      descripcion:     null,
       ancho:           1,
       alto:            1,
       cantidad:        1,
@@ -389,6 +393,7 @@ export default function NuevaCotizacionForm({
       const prod = item.producto_id ? productos.find((p) => p.id === item.producto_id) : null
       append({
         producto_id:     item.producto_id,
+        titulo_item:     null,
         descripcion:     item.descripcion ?? '',
         ancho:           item.ancho ?? 1,
         alto:            item.alto ?? 1,
@@ -415,6 +420,7 @@ export default function NuevaCotizacionForm({
       valida_hasta: values.valida_hasta ?? null,
       items:        values.items.map((it, idx) => ({
         producto_id:     it.producto_id ?? null,
+        titulo_item:     it.titulo_item ?? null,
         descripcion:     it.descripcion ?? null,
         ancho:           it.ancho ?? null,
         alto:            it.alto ?? null,
@@ -673,6 +679,7 @@ export default function NuevaCotizacionForm({
                 nivel={nivel}
                 descuentoEspecial={clienteSeleccionado?.descuento_porcentaje ?? 0}
                 initialProducto={initialItems[index]?._producto ?? null}
+                initialTituloItem={initialItems[index]?.titulo_item ?? null}
                 initialDescripcion={initialItems[index]?.descripcion ?? null}
               />
             ))}
@@ -812,6 +819,7 @@ interface ItemRowProps {
   nivel: NivelPrecio
   descuentoEspecial: number
   initialProducto?: (ProductoOption & { id: string }) | null
+  initialTituloItem?: string | null
   initialDescripcion?: string | null
 }
 
@@ -828,11 +836,12 @@ function ItemRow({
   nivel,
   descuentoEspecial,
   initialProducto,
+  initialTituloItem,
   initialDescripcion,
 }: ItemRowProps) {
-  // Bug 4: If there's no catalog product but there's a description, show it in the search field
   const hasInitialProduct = initialProducto != null
-  const [productoQuery,    setProductoQuery]    = useState(hasInitialProduct ? '' : (initialDescripcion ?? ''))
+  // Free items: show titulo_item in search field; fallback to descripcion for Zoho legacy items (no titulo_item)
+  const [productoQuery,    setProductoQuery]    = useState(hasInitialProduct ? '' : (initialTituloItem ?? initialDescripcion ?? ''))
   const [productoDropdown, setProductoDropdown] = useState(false)
   const [productoSel,      setProductoSel]      = useState<ProductoOption | null>(initialProducto ?? null)
   const [mostrarTerms,     setMostrarTerms]      = useState(false)
@@ -970,8 +979,7 @@ function ItemRow({
                   onChange={(e) => {
                     setProductoQuery(e.target.value)
                     setProductoDropdown(true)
-                    // Sync title to descripcion field (free items use this as their title in DB)
-                    setValue(`items.${index}.descripcion`, e.target.value)
+                    setValue(`items.${index}.titulo_item`, e.target.value)
                   }}
                   onFocus={() => setProductoDropdown(true)}
                   onBlur={() => setTimeout(() => setProductoDropdown(false), 150)}
@@ -994,15 +1002,13 @@ function ItemRow({
                 )}
               </div>
             )}
-            {/* Additional description — only shown for catalog items (free items use search field as title + nota toggle for notes) */}
-            {productoSel && (
-              <input
-                type="text"
-                placeholder="Descripción adicional (opcional)"
-                {...register(`items.${index}.descripcion`)}
-                className={`${INPUT_BASE} w-full mt-1`}
-              />
-            )}
+            {/* Descripción — siempre visible para ambos tipos de ítem */}
+            <input
+              type="text"
+              placeholder={productoSel ? 'Descripción adicional (opcional)' : 'Descripción del ítem (opcional)'}
+              {...register(`items.${index}.descripcion`)}
+              className={`${INPUT_BASE} w-full mt-1`}
+            />
             {/* Bug 1: Selector de tipo de unidad — visible solo cuando no hay producto seleccionado del catálogo */}
             {!productoSel && !esMinutos && (
               <div className="flex items-center gap-1 mt-1.5">

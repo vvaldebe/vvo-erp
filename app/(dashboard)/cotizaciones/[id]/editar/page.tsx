@@ -29,7 +29,7 @@ export default async function EditarCotizacionPage({
   // Ítems con terminaciones
   const { data: itemsData } = await supabase
     .from('cotizacion_items')
-    .select('id, producto_id, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden, notas_item, productos(id, nombre, unidad, precio_normal, precio_empresa, precio_agencia, categorias(nombre))')
+    .select('id, producto_id, titulo_item, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden, notas_item, productos(id, nombre, unidad, precio_normal, precio_empresa, precio_agencia, categorias(nombre))')
     .eq('cotizacion_id', id)
     .order('orden')
 
@@ -111,6 +111,7 @@ export default async function EditarCotizacionPage({
     }
     return {
       producto_id:     item.producto_id ?? null,
+      titulo_item:     (item as typeof item & { titulo_item?: string | null }).titulo_item ?? null,
       descripcion:     item.descripcion ?? null,
       ancho:           item.ancho ?? null,
       alto:            item.alto ?? null,

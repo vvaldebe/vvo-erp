@@ -19,6 +19,7 @@ const terminacionItemSchema = z.object({
 
 const cotizacionItemSchema = z.object({
   producto_id:    z.string().uuid().optional().nullable(),
+  titulo_item:    z.string().optional().nullable(),
   descripcion:    z.string().optional().nullable(),
   ancho:          z.number().min(0).optional().nullable(),
   alto:           z.number().min(0).optional().nullable(),
@@ -90,6 +91,7 @@ export async function crearCotizacion(data: CotizacionFormData): Promise<Cotizac
       .insert({
         cotizacion_id:   cotizacionId,
         producto_id:     item.producto_id ?? null,
+        titulo_item:     item.titulo_item ?? null,
         descripcion:     item.descripcion ?? null,
         ancho:           item.ancho ?? null,
         alto:            item.alto ?? null,
@@ -193,6 +195,7 @@ export async function actualizarCotizacion(
       .insert({
         cotizacion_id:   id,
         producto_id:     item.producto_id ?? null,
+        titulo_item:     item.titulo_item ?? null,
         descripcion:     item.descripcion ?? null,
         ancho:           item.ancho ?? null,
         alto:            item.alto ?? null,

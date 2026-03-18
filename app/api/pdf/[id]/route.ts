@@ -33,7 +33,7 @@ export async function GET(
   const { data: items, error: itemsError } = await supabase
     .from('cotizacion_items')
     .select(`
-      id, descripcion, notas_item, ancho, alto, cantidad,
+      id, titulo_item, descripcion, notas_item, ancho, alto, cantidad,
       precio_unitario, subtotal, orden,
       productos ( nombre, unidad )
     `)
@@ -125,10 +125,16 @@ export async function GET(
       : null,
     items: (items ?? []).map((item) => {
       const prod = Array.isArray(item.productos) ? item.productos[0] : item.productos
+      const itemAny = item as typeof item & { titulo_item?: string | null; notas_item?: string | null }
+      // Title: catalog → product_nombre | free → titulo_item | Zoho legacy → descripcion
+      const titulo = prod?.nombre ?? itemAny.titulo_item ?? item.descripcion ?? 'Ítem'
+      // Subtitle: descripcion when not used as title
+      const subtituloDesc = !prod?.nombre && itemAny.titulo_item ? (item.descripcion ?? null) : (prod?.nombre ? (item.descripcion ?? null) : null)
       return {
-        descripcion:     item.descripcion ?? prod?.nombre ?? 'Ítem',
+        descripcion:     titulo,
+        subtitulo:       subtituloDesc,
         producto_nombre: prod?.nombre ?? null,
-        notas_item:      (item as typeof item & { notas_item?: string | null }).notas_item ?? null,
+        notas_item:      itemAny.notas_item ?? null,
         ancho:           item.ancho,
         alto:            item.alto,
         cantidad:        item.cantidad,

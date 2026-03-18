@@ -23,6 +23,7 @@ export interface CotizacionPDFData {
   } | null
   items: {
     descripcion: string
+    subtitulo?: string | null
     producto_nombre: string | null
     notas_item?: string | null
     ancho: number | null
@@ -299,24 +300,13 @@ export default function CotizacionPDF({ data }: { data: CotizacionPDFData }) {
           <View key={i}>
             <View style={i % 2 === 0 ? s.tableRow : s.tableRowAlt}>
               <View style={s.colDesc}>
-                {item.producto_nombre ? (
-                  <>
-                    <Text style={{ ...s.cellText, fontFamily: 'Helvetica-Bold' }}>
-                      {item.producto_nombre}
-                    </Text>
-                    {item.descripcion && item.descripcion !== item.producto_nombre && (
-                      <Text style={s.cellMuted}>{item.descripcion}</Text>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Text style={{ ...s.cellText, fontFamily: 'Helvetica-Bold' }}>
-                      {item.descripcion}
-                    </Text>
-                    {item.notas_item && (
-                      <Text style={s.cellMuted}>{item.notas_item}</Text>
-                    )}
-                  </>
+                {/* Title always bold — route.ts already resolves: catalog=product_name, free=titulo_item, Zoho=descripcion */}
+                <Text style={{ ...s.cellText, fontFamily: 'Helvetica-Bold' }}>
+                  {item.descripcion}
+                </Text>
+                {/* Subtitle: descripcion of catalog/free items when present */}
+                {item.subtitulo && (
+                  <Text style={s.cellMuted}>{item.subtitulo}</Text>
                 )}
               </View>
               <Text style={{ ...s.cellMuted, ...s.colDim }}>

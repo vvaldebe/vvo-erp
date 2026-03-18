@@ -14,7 +14,11 @@
       "Bash(ls:*)",
       "Bash(python3:*)",
       "Bash(which gh:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(which supabase:*)",
+      "Bash(which psql:*)",
+      "Bash(brew install:*)",
+      "Bash(supabase:*)"
     ]
   }
 }

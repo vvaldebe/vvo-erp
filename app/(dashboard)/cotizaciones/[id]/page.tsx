@@ -77,7 +77,7 @@ export default async function CotizacionDetallePage({
   const { data: items } = await supabase
     .from('cotizacion_items')
     .select(`
-      id, descripcion, notas_item, ancho, alto, cantidad,
+      id, titulo_item, descripcion, notas_item, ancho, alto, cantidad,
       precio_unitario, subtotal, orden,
       productos ( nombre, unidad )
     `)
@@ -255,14 +255,16 @@ export default async function CotizacionDetallePage({
                 <React.Fragment key={item.id}>
                   <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-muted)] transition-colors">
                     <td className="px-5 py-3.5">
-                      <p className="text-[14px] font-medium text-[var(--text-primary)]">{prod?.nombre ?? item.descripcion ?? 'Ítem'}</p>
-                      {/* Catalog item: show descripcion as subtitle */}
-                      {prod?.nombre && item.descripcion && (
+                      {/* Title: catalog → product name | free → titulo_item | Zoho legacy → descripcion */}
+                      <p className="text-[14px] font-medium text-[var(--text-primary)]">
+                        {prod?.nombre ?? item.titulo_item ?? item.descripcion ?? 'Ítem'}
+                      </p>
+                      {/* Subtitle: descripcion (for all items that have it, when not used as title) */}
+                      {!prod?.nombre && item.titulo_item && item.descripcion && (
                         <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
                       )}
-                      {/* Free item: show notas_item as subtitle */}
-                      {!prod?.nombre && item.notas_item && (
-                        <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.notas_item}</p>
+                      {prod?.nombre && item.descripcion && (
+                        <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{item.descripcion}</p>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-[14px] text-[var(--text-secondary)]">{dims}</td>
