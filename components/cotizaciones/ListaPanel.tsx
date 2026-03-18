@@ -305,17 +305,25 @@ export default function ListaPanel({ cotizaciones: initialCotizaciones, hasMore:
     const ids = Array.from(selectedIds)
     if (!window.confirm(`¿Eliminar ${ids.length} cotización${ids.length !== 1 ? 'es' : ''}? Solo se eliminarán las que estén en borrador o rechazada.`)) return
     startBulk(async () => {
-      const result = await bulkEliminarCotizaciones(ids)
-      if ('error' in result) {
-        toast.error(result.error)
-      } else {
-        toast.success(`${result.count} cotización${result.count !== 1 ? 'es' : ''} eliminada${result.count !== 1 ? 's' : ''}`)
-        // Optimistic update: remove deleted rows locally without router.refresh()
-        setRows((prev) => prev.filter((row) => !selectedIds.has(row.id)))
-        if (searchRows !== null) {
-          setSearchRows((prev) => prev === null ? null : prev.filter((row) => !selectedIds.has(row.id)))
+      try {
+        const result = await bulkEliminarCotizaciones(ids)
+        if ('error' in result) {
+          toast.error(result.error)
+        } else {
+          if (result.count === 0) {
+            toast.warning('No se eliminó ninguna cotización. Solo se pueden eliminar borradores o rechazadas.')
+          } else {
+            toast.success(`${result.count} cotización${result.count !== 1 ? 'es' : ''} eliminada${result.count !== 1 ? 's' : ''}`)
+          }
+          const snapshotIds = new Set(ids)
+          setRows((prev) => prev.filter((row) => !snapshotIds.has(row.id)))
+          if (searchRows !== null) {
+            setSearchRows((prev) => prev === null ? null : prev.filter((row) => !snapshotIds.has(row.id)))
+          }
+          setSelectedIds(new Set())
         }
-        setSelectedIds(new Set())
+      } catch {
+        toast.error('Error al eliminar cotizaciones')
       }
     })
   }

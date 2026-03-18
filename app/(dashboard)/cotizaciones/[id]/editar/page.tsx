@@ -109,10 +109,18 @@ export default async function EditarCotizacionPage({
       else if (item.alto == null) derivedUnidad = 'ml'
       else derivedUnidad = 'm2'
     }
+    const rawTituloItem = (item as typeof item & { titulo_item?: string | null }).titulo_item ?? null
+    // Fallback: ítems libres antiguos guardaban el título en `descripcion` antes del fix
+    const isFreeText = !item.producto_id
+    const efectivoTitulo = rawTituloItem ?? (isFreeText ? (item.descripcion ?? null) : null)
+    const efectivaDesc   = rawTituloItem != null
+      ? (item.descripcion ?? null)
+      : (isFreeText ? null : (item.descripcion ?? null))
+
     return {
       producto_id:     item.producto_id ?? null,
-      titulo_item:     (item as typeof item & { titulo_item?: string | null }).titulo_item ?? null,
-      descripcion:     item.descripcion ?? null,
+      titulo_item:     efectivoTitulo,
+      descripcion:     efectivaDesc,
       ancho:           item.ancho ?? null,
       alto:            item.alto ?? null,
       cantidad:        item.cantidad,

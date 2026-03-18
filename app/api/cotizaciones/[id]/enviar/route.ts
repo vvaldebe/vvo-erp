@@ -127,20 +127,30 @@ export async function POST(
   const ccFinal = Array.from(new Set([copiaInterna, ...ccExtra]))
 
   const emailDestino = toOverride ?? clienteRaw.email
-  const { error: emailError } = await enviarCotizacion({
-    to:               emailDestino,
-    cc:               ccFinal,
-    numeroCotizacion: cot.numero,
-    pdfBuffer,
-    asunto,
-    cuerpo,
-    total:            totalFormateado,
-    validaHasta:      validaHastaFormateada,
-    linkAprobacion,
-  })
+  let emailError: unknown = null
+  try {
+    const result = await enviarCotizacion({
+      to:               emailDestino,
+      cc:               ccFinal,
+      numeroCotizacion: cot.numero,
+      pdfBuffer,
+      asunto,
+      cuerpo,
+      total:            totalFormateado,
+      validaHasta:      validaHastaFormateada,
+      linkAprobacion,
+    })
+    emailError = result.error
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 
   if (emailError) {
-    return NextResponse.json({ error: 'Error al enviar el email' }, { status: 500 })
+    const msg = typeof emailError === 'object' && emailError !== null && 'message' in emailError
+      ? String((emailError as { message: unknown }).message)
+      : 'Error al enviar el email'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 
   // Actualizar estado a 'enviada'
