@@ -32,8 +32,13 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  const PUBLIC_ROUTES = ['/login', '/auth', '/aprobar']
+  const isPublic = PUBLIC_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(r + '/') || pathname.startsWith(r + '?')
+  )
+
   // Redirigir usuarios no autenticados al login
-  if (!user && pathname !== '/login') {
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
