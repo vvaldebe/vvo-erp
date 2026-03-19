@@ -120,7 +120,7 @@ async function fetchDetail(id: string) {
   const { data: cot, error } = await supabase
     .from('cotizaciones')
     .select(`
-      id, numero, estado, nivel_precio, subtotal, iva, total,
+      id, numero, estado, nivel_precio, subtotal, iva, total, descuento_global,
       notas, notas_internas, asunto, created_at, valida_hasta, enviada_at,
       clientes ( id, nombre, rut, email, telefono, direccion, descuento_porcentaje )
     `)
@@ -133,7 +133,7 @@ async function fetchDetail(id: string) {
     .from('cotizacion_items')
     .select(`
       id, producto_id, titulo_item, descripcion, notas_item, ancho, alto, cantidad,
-      precio_unitario, subtotal, orden
+      precio_unitario, subtotal, orden, descuento
     `)
     .eq('cotizacion_id', id)
     .order('orden')
@@ -330,7 +330,7 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
             </thead>
             <tbody>
               {items.map((item) => {
-                const itemAny = item as typeof item & { producto_id?: string | null; titulo_item?: string | null; notas_item?: string | null }
+                const itemAny = item as typeof item & { producto_id?: string | null; titulo_item?: string | null; notas_item?: string | null; descuento?: number }
                 const prod = itemAny.producto_id ? productoMap[itemAny.producto_id] ?? null : null
                 const isM2 = prod?.unidad === 'm2' && item.ancho != null && item.alto != null
                 const isMl = prod?.unidad === 'ml' && item.ancho != null
@@ -370,6 +370,14 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
                         <td className="px-4 py-2 text-right text-[11px] text-[var(--text-secondary)] tabular-nums whitespace-nowrap">{clp(t.precio * t.cantidad)}</td>
                       </tr>
                     ))}
+                    {(itemAny.descuento ?? 0) > 0 && (
+                      <tr key={`${item.id}-desc`} className="border-b border-[var(--border-subtle)] bg-green-50/5">
+                        <td className="px-4 py-2 pl-9 text-[11px] text-green-600">− Descuento ítem</td>
+                        <td colSpan={2} />
+                        <td className="px-3 py-2" />
+                        <td className="px-4 py-2 text-right text-[11px] font-medium text-green-600 tabular-nums whitespace-nowrap">-{clp(itemAny.descuento ?? 0)}</td>
+                      </tr>
+                    )}
                   </React.Fragment>
                 )
               })}
@@ -385,6 +393,12 @@ function DetailContent({ detail, id }: { detail: DetailData; id: string }) {
             <span>Subtotal neto</span>
             <span className="tabular-nums">{clp(cot.subtotal)}</span>
           </div>
+          {((cot as typeof cot & { descuento_global?: number }).descuento_global ?? 0) > 0 && (
+            <div className="px-4 py-3 flex justify-between text-[13px] text-green-600 border-b border-[var(--border-subtle)]">
+              <span>Descuento</span>
+              <span className="tabular-nums">-{clp((cot as typeof cot & { descuento_global?: number }).descuento_global!)}</span>
+            </div>
+          )}
           <div className="px-4 py-3 flex justify-between text-[13px] text-[var(--text-secondary)] border-b border-[var(--border-default)]">
             <span>IVA 19%</span>
             <span className="tabular-nums">{clp(cot.iva)}</span>

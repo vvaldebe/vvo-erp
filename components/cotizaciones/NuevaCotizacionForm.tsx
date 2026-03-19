@@ -75,6 +75,7 @@ export interface InitialItem {
   unidad:          UnidadMedida | null
   terminaciones:   { terminacion_id: string | null; nombre: string; precio: number; cantidad: number }[]
   _producto:       (ProductoOption & { id: string }) | null
+  descuento:       number
 }
 
 interface Props {
@@ -84,13 +85,14 @@ interface Props {
   terminaciones:    TerminacionOption[]
   serviciosMaquina?: ServicioMaquinaOption[]
   // Modo edición
-  cotizacionId?:      string
-  initialCliente?:    ClienteOption | null
-  initialNivel?:      NivelPrecio
-  initialNotas?:      string
-  initialAsunto?:     string
-  initialValidaHasta?: string
-  initialItems?:      InitialItem[]
+  cotizacionId?:         string
+  initialCliente?:       ClienteOption | null
+  initialNivel?:         NivelPrecio
+  initialNotas?:         string
+  initialAsunto?:        string
+  initialValidaHasta?:   string
+  initialItems?:         InitialItem[]
+  initialDescuentoGlobal?: number
 }
 
 // ── Schema de formulario ────────────────────────────────────────────────────
@@ -115,14 +117,16 @@ const itemSchema = z.object({
   notas_item:      z.string().optional().nullable(),
   unidad:          z.enum(['m2', 'ml', 'unidad']),
   terminaciones:   z.array(terminacionItemSchema),
+  descuento:       z.number().int().min(0).optional(),
 })
 
 const formSchema = z.object({
-  valida_hasta: z.string().optional().nullable(),
-  nivel_precio: z.enum(['normal', 'empresa', 'agencia', 'especial']),
-  notas:        z.string().optional().nullable(),
-  asunto:       z.string().optional().nullable(),
-  items:        z.array(itemSchema).min(1, 'Debe agregar al menos un ítem'),
+  valida_hasta:    z.string().optional().nullable(),
+  nivel_precio:    z.enum(['normal', 'empresa', 'agencia', 'especial']),
+  notas:           z.string().optional().nullable(),
+  asunto:          z.string().optional().nullable(),
+  items:           z.array(itemSchema).min(1, 'Debe agregar al menos un ítem'),
+  descuento_global: z.number().int().min(0).optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -174,14 +178,15 @@ export default function NuevaCotizacionForm({
   clientes,
   productos,
   terminaciones,
-  serviciosMaquina  = [],
+  serviciosMaquina        = [],
   cotizacionId,
-  initialCliente    = null,
-  initialNivel      = 'normal',
-  initialNotas      = '',
-  initialAsunto     = '',
+  initialCliente          = null,
+  initialNivel            = 'normal',
+  initialNotas            = '',
+  initialAsunto           = '',
   initialValidaHasta,
-  initialItems      = [],
+  initialItems            = [],
+  initialDescuentoGlobal  = 0,
 }: Props) {
   const hoy = todayISO()
   const esEdicion = !!cotizacionId
@@ -208,10 +213,11 @@ export default function NuevaCotizacionForm({
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      valida_hasta: initialValidaHasta || addDays(hoy, 3),
-      nivel_precio: initialNivel,
-      notas:        initialNotas,
-      asunto:       initialAsunto,
+      valida_hasta:    initialValidaHasta || addDays(hoy, 3),
+      nivel_precio:    initialNivel,
+      notas:           initialNotas,
+      asunto:          initialAsunto,
+      descuento_global: initialDescuentoGlobal ?? 0,
       items:        initialItems.map((item) => ({
         producto_id:     item.producto_id,
         titulo_item:     item.titulo_item ?? null,
@@ -225,6 +231,7 @@ export default function NuevaCotizacionForm({
         notas_item:      item.notas_item ?? null,
         unidad:          (item.unidad ?? item._producto?.unidad ?? 'm2') as UnidadMedida,
         terminaciones:   item.terminaciones,
+        descuento:       item.descuento ?? 0,
       })),
     },
   })
@@ -238,14 +245,17 @@ export default function NuevaCotizacionForm({
   const watchedAsunto = watch('asunto')
   const watchedValida = watch('valida_hasta')
 
-  // Cálculo de subtotal total
-  const subtotalNeto = (watchedItems ?? []).reduce((acc, item) => {
+  // Cálculo de subtotal total (con descuentos por ítem y global)
+  const subtotalNetoSinDescGlobal = (watchedItems ?? []).reduce((acc, item) => {
     const itemSub = Number(item?.subtotal) || 0
     const termSub = (item?.terminaciones ?? []).reduce((ta, t) => {
       return ta + ((Number(t?.precio) || 0) * (Number(t?.cantidad) || 1))
     }, 0)
-    return acc + itemSub + termSub
+    const descItem = Number((item as typeof item & { descuento?: number })?.descuento) || 0
+    return acc + itemSub + termSub - descItem
   }, 0)
+  const descuentoGlobalVal = Number(watch('descuento_global') as number) || 0
+  const subtotalNeto       = subtotalNetoSinDescGlobal - descuentoGlobalVal
 
   const ivaVal   = calcularIva(subtotalNeto)
   const totalVal = subtotalNeto + ivaVal
@@ -381,6 +391,7 @@ export default function NuevaCotizacionForm({
       notas_item:      null,
       unidad:          'm2',
       terminaciones:   [],
+      descuento:       0,
     })
   }
 
@@ -404,6 +415,7 @@ export default function NuevaCotizacionForm({
         notas_item:      null,
         unidad:          prod?.unidad ?? 'm2',
         terminaciones:   [],
+        descuento:       0,
       })
     }
   }
@@ -412,12 +424,13 @@ export default function NuevaCotizacionForm({
   function onSubmit(values: FormValues) {
     setServerError(null)
     const payload = {
-      numero:       numeroCotizacion,
-      cliente_id:   clienteSeleccionado?.id ?? null,
-      nivel_precio: values.nivel_precio,
-      notas:        values.notas ?? null,
-      asunto:       values.asunto ?? null,
-      valida_hasta: values.valida_hasta ?? null,
+      numero:          numeroCotizacion,
+      cliente_id:      clienteSeleccionado?.id ?? null,
+      nivel_precio:    values.nivel_precio,
+      notas:           values.notas ?? null,
+      asunto:          values.asunto ?? null,
+      valida_hasta:    values.valida_hasta ?? null,
+      descuento_global: values.descuento_global ?? 0,
       items:        values.items.map((it, idx) => ({
         producto_id:     it.producto_id ?? null,
         titulo_item:     it.titulo_item ?? null,
@@ -430,6 +443,7 @@ export default function NuevaCotizacionForm({
         orden:           idx,
         notas_item:      it.notas_item ?? null,
         unidad:          it.unidad ?? 'm2',
+        descuento:       it.descuento ?? 0,
         terminaciones:   (it.terminaciones ?? []).map((t) => ({
           terminacion_id: t.terminacion_id ?? null,
           nombre:         t.nombre,
@@ -738,6 +752,24 @@ export default function NuevaCotizacionForm({
                   {formatCLP(Math.round(subtotalNeto))}
                 </span>
               </div>
+              {/* Descuento global */}
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--text-secondary)] flex-1">Descuento ($)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  {...register('descuento_global', { valueAsNumber: true })}
+                  className="w-24 px-2 py-1 text-right text-sm border border-[var(--border-default)] rounded-md bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:border-[#7c3aed]"
+                  placeholder="0"
+                />
+              </div>
+              {descuentoGlobalVal > 0 && (
+                <div className="flex justify-between text-[var(--text-secondary)]">
+                  <span className="text-green-600">− Descuento</span>
+                  <span className="tabular-nums text-green-600">-{formatCLP(Math.round(descuentoGlobalVal))}</span>
+                </div>
+              )}
               <div className="flex justify-between text-[var(--text-secondary)]">
                 <span>IVA 19%</span>
                 <span className="tabular-nums">
@@ -849,6 +881,7 @@ function ItemRow({
   const [esMinutos,        setEsMinutos]         = useState(() => detectarModoMinutos(initialProducto?.nombre ?? ''))
   const [minimoMinutos,    setMinimoMinutos]     = useState<number | null>(null)
   const [mostrarNotaItem,  setMostrarNotaItem]   = useState(false)
+  const [mostrarDescuento, setMostrarDescuento]  = useState(false)
 
   const { fields: termFields, append: appendTerm, remove: removeTerm } =
     useFieldArray({ control, name: `items.${index}.terminaciones` as const })
@@ -1142,6 +1175,29 @@ function ItemRow({
             className="text-xs text-[var(--text-muted)] hover:text-[#e91e8c] transition-colors"
           >
             + nota
+          </button>
+        )}
+
+        {/* Descuento del ítem */}
+        {(mostrarDescuento || (Number(watch(`items.${index}.descuento` as keyof typeof watch)) || 0) > 0) ? (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-[var(--text-secondary)] shrink-0">Descuento ($)</label>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              {...register(`items.${index}.descuento` as `items.${number}.descuento`, { valueAsNumber: true })}
+              className="w-28 px-2 py-1 text-right text-[12px] text-green-700 border border-[var(--border-default)] rounded-[5px] focus:outline-none focus:border-[#7c3aed] bg-[var(--bg-card)]"
+              placeholder="0"
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setMostrarDescuento(true)}
+            className="text-xs text-[var(--text-muted)] hover:text-green-600 transition-colors"
+          >
+            + descuento
           </button>
         )}
 

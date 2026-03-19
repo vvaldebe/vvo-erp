@@ -59,16 +59,18 @@ const cotizacionItemSchema = z.object({
   notas_item:     z.string().optional().nullable(),
   unidad:         z.enum(['m2', 'ml', 'unidad']).default('m2'),
   terminaciones:  z.array(terminacionItemSchema).default([]),
+  descuento:      z.number().int().min(0).default(0),
 })
 
 const cotizacionSchema = z.object({
-  numero:       z.string().min(1),
-  cliente_id:   z.string().uuid().optional().nullable(),
-  nivel_precio: z.enum(['normal', 'empresa', 'agencia', 'especial']),
-  notas:        z.string().optional().nullable(),
-  asunto:       z.string().optional().nullable(),
-  valida_hasta: z.string().optional().nullable(),
-  items:        z.array(cotizacionItemSchema).min(1, 'Debe agregar al menos un ítem'),
+  numero:          z.string().min(1),
+  cliente_id:      z.string().uuid().optional().nullable(),
+  nivel_precio:    z.enum(['normal', 'empresa', 'agencia', 'especial']),
+  notas:           z.string().optional().nullable(),
+  asunto:          z.string().optional().nullable(),
+  valida_hasta:    z.string().optional().nullable(),
+  items:           z.array(cotizacionItemSchema).min(1, 'Debe agregar al menos un ítem'),
+  descuento_global: z.number().int().min(0).default(0),
 })
 
 export type CotizacionFormData = z.infer<typeof cotizacionSchema>
@@ -84,8 +86,11 @@ export async function crearCotizacion(data: CotizacionFormData): Promise<Cotizac
 
   const d = parsed.data
 
-  // Calcular totales
-  const subtotal = d.items.reduce((acc, item) => acc + item.subtotal, 0)
+  // Calcular totales (con descuentos por ítem y global)
+  const subtotal = d.items.reduce((acc, item) => {
+    const termSum = (item.terminaciones ?? []).reduce((s, t) => s + t.precio * t.cantidad, 0)
+    return acc + item.subtotal + termSum - (item.descuento ?? 0)
+  }, 0) - (d.descuento_global ?? 0)
   const iva      = calcularIva(subtotal)
   const total    = subtotal + iva
 
@@ -99,15 +104,16 @@ export async function crearCotizacion(data: CotizacionFormData): Promise<Cotizac
     .from('cotizaciones')
     .insert({
       numero,
-      cliente_id:   d.cliente_id ?? null,
-      nivel_precio: d.nivel_precio,
-      estado:       'borrador',
-      subtotal:     Math.round(subtotal),
-      iva:          Math.round(iva),
-      total:        Math.round(total),
-      notas:        d.notas ?? null,
-      asunto:       d.asunto ?? null,
-      valida_hasta: d.valida_hasta ?? null,
+      cliente_id:      d.cliente_id ?? null,
+      nivel_precio:    d.nivel_precio,
+      estado:          'borrador',
+      subtotal:        Math.round(subtotal),
+      iva:             Math.round(iva),
+      total:           Math.round(total),
+      notas:           d.notas ?? null,
+      asunto:          d.asunto ?? null,
+      valida_hasta:    d.valida_hasta ?? null,
+      descuento_global: d.descuento_global ?? 0,
     })
     .select('id')
     .single()
@@ -132,6 +138,7 @@ export async function crearCotizacion(data: CotizacionFormData): Promise<Cotizac
         subtotal:        Math.round(item.subtotal),
         orden:           item.orden,
         notas_item:      item.notas_item ?? null,
+        descuento:       item.descuento ?? 0,
       })
       .select('id')
       .single()
@@ -193,7 +200,10 @@ export async function actualizarCotizacion(
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const d = parsed.data
-  const subtotal = d.items.reduce((acc, item) => acc + item.subtotal, 0)
+  const subtotal = d.items.reduce((acc, item) => {
+    const termSum = (item.terminaciones ?? []).reduce((s, t) => s + t.precio * t.cantidad, 0)
+    return acc + item.subtotal + termSum - (item.descuento ?? 0)
+  }, 0) - (d.descuento_global ?? 0)
   const iva      = calcularIva(subtotal)
   const total    = subtotal + iva
 
@@ -203,15 +213,16 @@ export async function actualizarCotizacion(
   const { error: cotError } = await supabase
     .from('cotizaciones')
     .update({
-      cliente_id:   d.cliente_id ?? null,
-      nivel_precio: d.nivel_precio,
-      subtotal:     Math.round(subtotal),
-      iva:          Math.round(iva),
-      total:        Math.round(total),
-      notas:        d.notas ?? null,
-      asunto:       d.asunto ?? null,
-      valida_hasta: d.valida_hasta ?? null,
-      updated_at:   new Date().toISOString(),
+      cliente_id:      d.cliente_id ?? null,
+      nivel_precio:    d.nivel_precio,
+      subtotal:        Math.round(subtotal),
+      iva:             Math.round(iva),
+      total:           Math.round(total),
+      notas:           d.notas ?? null,
+      asunto:          d.asunto ?? null,
+      valida_hasta:    d.valida_hasta ?? null,
+      updated_at:      new Date().toISOString(),
+      descuento_global: d.descuento_global ?? 0,
     })
     .eq('id', id)
 
@@ -237,6 +248,7 @@ export async function actualizarCotizacion(
         subtotal:        Math.round(item.subtotal),
         orden:           item.orden,
         notas_item:      item.notas_item ?? null,
+        descuento:       item.descuento ?? 0,
       })
       .select('id')
       .single()
@@ -287,7 +299,7 @@ export async function clonarCotizacion(
   // Obtener cotización original
   const { data: original, error: origError } = await supabase
     .from('cotizaciones')
-    .select('cliente_id, nivel_precio, notas, asunto, subtotal, iva, total')
+    .select('cliente_id, nivel_precio, notas, asunto, subtotal, iva, total, descuento_global')
     .eq('id', id)
     .single()
 
@@ -301,15 +313,16 @@ export async function clonarCotizacion(
     .from('cotizaciones')
     .insert({
       numero,
-      cliente_id:   original.cliente_id,
-      nivel_precio: original.nivel_precio,
-      estado:       'borrador',
-      subtotal:     original.subtotal,
-      iva:          original.iva,
-      total:        original.total,
-      notas:        original.notas,
-      asunto:       original.asunto,
-      valida_hasta: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+      cliente_id:      original.cliente_id,
+      nivel_precio:    original.nivel_precio,
+      estado:          'borrador',
+      subtotal:        original.subtotal,
+      iva:             original.iva,
+      total:           original.total,
+      notas:           original.notas,
+      asunto:          original.asunto,
+      valida_hasta:    new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+      descuento_global: (original as typeof original & { descuento_global?: number }).descuento_global ?? 0,
     })
     .select('id')
     .single()
@@ -319,10 +332,11 @@ export async function clonarCotizacion(
   // Copiar ítems
   const { data: items } = await supabase
     .from('cotizacion_items')
-    .select('id, producto_id, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden')
+    .select('id, producto_id, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden, descuento')
     .eq('cotizacion_id', id)
 
   for (const item of items ?? []) {
+    const itemAny = item as typeof item & { descuento?: number }
     const { data: newItem, error: itemErr } = await supabase
       .from('cotizacion_items')
       .insert({
@@ -335,6 +349,7 @@ export async function clonarCotizacion(
         precio_unitario: item.precio_unitario,
         subtotal:        item.subtotal,
         orden:           item.orden,
+        descuento:       itemAny.descuento ?? 0,
       })
       .select('id')
       .single()

@@ -17,7 +17,7 @@ export default async function EditarCotizacionPage({
   const { data: cot, error } = await supabase
     .from('cotizaciones')
     .select(`
-      id, numero, estado, nivel_precio, notas, asunto, valida_hasta, cliente_id,
+      id, numero, estado, nivel_precio, notas, asunto, valida_hasta, cliente_id, descuento_global,
       clientes ( id, nombre, nivel_precio, descuento_porcentaje )
     `)
     .eq('id', id)
@@ -29,7 +29,7 @@ export default async function EditarCotizacionPage({
   // Ítems con terminaciones
   const { data: itemsData } = await supabase
     .from('cotizacion_items')
-    .select('id, producto_id, titulo_item, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden, notas_item, productos(id, nombre, unidad, precio_normal, precio_empresa, precio_agencia, categorias(nombre))')
+    .select('id, producto_id, titulo_item, descripcion, ancho, alto, cantidad, precio_unitario, subtotal, orden, notas_item, descuento, productos(id, nombre, unidad, precio_normal, precio_empresa, precio_agencia, categorias(nombre))')
     .eq('cotizacion_id', id)
     .order('orden')
 
@@ -130,6 +130,7 @@ export default async function EditarCotizacionPage({
       notas_item:      item.notas_item ?? null,
       unidad:          derivedUnidad,
       terminaciones:   termsByItem[item.id] ?? [],
+      descuento:       (item as typeof item & { descuento?: number }).descuento ?? 0,
       _producto: prod ? {
         id:             prod.id,
         nombre:         prod.nombre,
@@ -177,6 +178,7 @@ export default async function EditarCotizacionPage({
         initialAsunto={cot.asunto ?? ''}
         initialValidaHasta={cot.valida_hasta ?? ''}
         initialItems={initialItems}
+        initialDescuentoGlobal={(cot as typeof cot & { descuento_global?: number }).descuento_global ?? 0}
       />
     </div>
   )

@@ -18,7 +18,7 @@ export async function GET(
   const { data: cot, error: cotError } = await supabase
     .from('cotizaciones')
     .select(`
-      id, numero, estado, nivel_precio, subtotal, iva, total,
+      id, numero, estado, nivel_precio, subtotal, iva, total, descuento_global,
       notas, created_at, valida_hasta, cliente_id,
       clientes ( nombre, rut, email, telefono, direccion )
     `)
@@ -34,7 +34,7 @@ export async function GET(
     .from('cotizacion_items')
     .select(`
       id, titulo_item, descripcion, notas_item, ancho, alto, cantidad,
-      precio_unitario, subtotal, orden,
+      precio_unitario, subtotal, orden, descuento,
       productos ( nombre, unidad )
     `)
     .eq('cotizacion_id', id)
@@ -106,14 +106,15 @@ export async function GET(
   const clienteRaw = Array.isArray(cot.clientes) ? cot.clientes[0] : cot.clientes
 
   const pdfData = {
-    numero:       cot.numero,
-    fecha:        cot.created_at,
-    valida_hasta: cot.valida_hasta,
-    nivel_precio: cot.nivel_precio,
-    subtotal:     cot.subtotal,
-    iva:          cot.iva,
-    total:        cot.total,
-    notas:        cot.notas,
+    numero:          cot.numero,
+    fecha:           cot.created_at,
+    valida_hasta:    cot.valida_hasta,
+    nivel_precio:    cot.nivel_precio,
+    subtotal:        cot.subtotal,
+    iva:             cot.iva,
+    total:           cot.total,
+    notas:           cot.notas,
+    descuento_global: (cot as typeof cot & { descuento_global?: number }).descuento_global ?? 0,
     cliente:      clienteRaw
       ? {
           nombre:    clienteRaw.nombre,
@@ -142,6 +143,7 @@ export async function GET(
         subtotal:        item.subtotal,
         unidad:          prod?.unidad ?? 'unidad',
         terminaciones:   terminacionesPorItem[item.id] ?? [],
+        descuento:       (item as typeof item & { descuento?: number }).descuento ?? 0,
       }
     }),
     // Datos de empresa desde configuración

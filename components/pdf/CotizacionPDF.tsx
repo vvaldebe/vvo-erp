@@ -32,6 +32,7 @@ export interface CotizacionPDFData {
     precio_unitario: number
     subtotal: number
     unidad: string
+    descuento?: number
     terminaciones: {
       nombre: string
       precio: number
@@ -41,6 +42,7 @@ export interface CotizacionPDFData {
   subtotal: number
   iva: number
   total: number
+  descuento_global?: number
   notas: string | null
   logoBase64: string | null
   // Datos de empresa (sobreescribe los valores por defecto del header)
@@ -148,6 +150,9 @@ const s = StyleSheet.create({
   tableRow: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
   tableRowAlt: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
   tableRowTerm: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 8, paddingLeft: 20, backgroundColor: '#fdf4f9', borderBottomWidth: 0.5, borderBottomColor: C.border },
+  tableRowDiscount: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 8, paddingLeft: 20, backgroundColor: '#f0fdf4', borderBottomWidth: 0.5, borderBottomColor: C.border },
+  discountLabel: { fontSize: 7.5, color: '#16a34a' },
+  discountValue: { fontSize: 7.5, color: '#16a34a', fontFamily: 'Courier', textAlign: 'right' as const },
 
   // columnas (total 515pt disponibles)
   colDesc:   { width: 195 },
@@ -339,6 +344,21 @@ export default function CotizacionPDF({ data }: { data: CotizacionPDFData }) {
                 </Text>
               </View>
             ))}
+
+            {/* Descuento del ítem */}
+            {(item.descuento ?? 0) > 0 && (
+              <View style={s.tableRowDiscount}>
+                <View style={s.colDesc}>
+                  <Text style={s.discountLabel}>  − Descuento</Text>
+                </View>
+                <Text style={{ ...s.cellMuted, ...s.colDim }} />
+                <Text style={{ ...s.cellMono, ...s.colCant }} />
+                <Text style={{ ...s.cellMonoRight, ...s.colPrecio }} />
+                <Text style={{ ...s.discountValue, ...s.colSub }}>
+                  -{clp(item.descuento ?? 0)}
+                </Text>
+              </View>
+            )}
           </View>
         ))}
 
@@ -348,6 +368,12 @@ export default function CotizacionPDF({ data }: { data: CotizacionPDFData }) {
             <Text style={s.totalesLabel}>Subtotal neto</Text>
             <Text style={s.totalesValue}>{clp(data.subtotal)}</Text>
           </View>
+          {(data.descuento_global ?? 0) > 0 && (
+            <View style={s.totalesRow}>
+              <Text style={{ ...s.totalesLabel, color: '#16a34a' }}>Descuento</Text>
+              <Text style={{ ...s.totalesValue, color: '#16a34a' }}>-{clp(data.descuento_global ?? 0)}</Text>
+            </View>
+          )}
           <View style={s.totalesRow}>
             <Text style={s.totalesLabel}>IVA 19%</Text>
             <Text style={s.totalesValue}>{clp(data.iva)}</Text>
