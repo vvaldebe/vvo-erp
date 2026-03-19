@@ -412,9 +412,8 @@ export async function aprobarCotizacionPorToken(
   const { error: updateError } = await supabase
     .from('cotizaciones')
     .update({
-      estado:           'aprobada',
-      token_aprobacion: null,
-      updated_at:       new Date().toISOString(),
+      estado:     'aprobada',
+      updated_at: new Date().toISOString(),
     })
     .eq('id', cot.id)
 

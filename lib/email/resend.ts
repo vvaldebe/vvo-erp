@@ -89,13 +89,6 @@ export async function enviarCotizacion({
 
                   ${resumenSection}
 
-                  <div style="margin:20px 0">
-                    <a href="#"
-                       style="display:inline-block;background:#3d1450;color:#fff;font-weight:600;font-size:14px;padding:10px 20px;border-radius:6px;text-decoration:none">
-                      Ver cotización adjunta
-                    </a>
-                  </div>
-
                   ${aprobacionSection}
 
                   <!-- Footer -->
